@@ -46,6 +46,39 @@ jobs:
           python checks.py
           cat checks-report.md >> "$GITHUB_STEP_SUMMARY"
 
+      # Runs only when every check passed. Replaces the six files on
+      # drinkhqmedia.com/magazine-proofs (DrinkHQ Private Issues plugin, dhqpi/v1/upload).
+      - name: Update the proofs page
+        env:
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+        run: |
+          if [ -z "$WP_USER" ] || [ -z "$WP_APP_PASSWORD" ]; then
+            echo "::error::Proofs not updated: add the WP_USER and WP_APP_PASSWORD repository secrets."
+            exit 1
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Proofs page" >> "$GITHUB_STEP_SUMMARY"
+          for t in 32 16; do
+            for f in "html|out/DrinkHQ-Magazine_Issue-01_${t}pp_Official-Record.html" \
+                     "press|pdf/DrinkHQ-Magazine-Issue-01-${t}pp-Press-300dpi-October-2026.pdf" \
+                     "email|pdf/DrinkHQ-Magazine-Issue-01-${t}pp-Email-October-2026.pdf"; do
+              fmt="${f%%|*}"; path="${f#*|}"
+              out=$(curl -sS --retry 3 --retry-all-errors --max-time 300 -w '\n%{http_code}' \
+                -u "$WP_USER:$WP_APP_PASSWORD" \
+                -F "slot=issue-01-${t}pp|${fmt}" -F "file=@${path}" \
+                https://drinkhqmedia.com/wp-json/dhqpi/v1/upload)
+              code=$(echo "$out" | tail -n1); body=$(echo "$out" | sed '$d')
+              if [ "$code" != "200" ]; then
+                echo "::error::Upload of ${t}pp ${fmt} failed ($code): $body"
+                echo "- FAIL: ${t}pp ${fmt} ($code)" >> "$GITHUB_STEP_SUMMARY"
+                exit 1
+              fi
+              echo "Uploaded ${t}pp ${fmt}: $body"
+              echo "- Updated: ${t}pp ${fmt}" >> "$GITHUB_STEP_SUMMARY"
+            done
+          done
+
       - name: Keep the files from this build
         if: always()
         uses: actions/upload-artifact@v4

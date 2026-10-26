@@ -31,4 +31,8 @@ The package is split into several zip files, each a normal zip. Unzip them all i
 Actions → "Publish magazine issue" → Run workflow. The build makes every PDF, runs the checks
 (no overflowing text, no withdrawn or stale content, QR codes scan, press PDF under 10 MB) and keeps
 the files for 30 days on the run page. If any check fails, the run is marked failed and says which.
+When every check passes, the run replaces the six files on drinkhqmedia.com/magazine-proofs
+(16 and 32 pages × editable HTML, press PDF, email PDF). It signs in with a WordPress application
+password kept in the repository secrets WP_USER and WP_APP_PASSWORD; without them the run stops
+at that step and says so. If a check fails, the proofs are not touched.
 The Ops "Publish issue" button starts the same run. Checks live in mag/checks.py.
