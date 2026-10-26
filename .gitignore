@@ -1,0 +1,11 @@
+mag/out/
+mag/out_press/
+mag/out_canva/
+mag/pdf/
+mag/canva/
+mag/qa/
+mag/checks-report.md
+kit/*.pdf
+kit/*.html
+__pycache__/
+*.pyc

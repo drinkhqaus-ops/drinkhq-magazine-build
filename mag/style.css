@@ -1,0 +1,1574 @@
+:root{--navy:#0E1F4D;--navy2:#16306E;--royal:#1747A6;--gold:#EFB40E;--gold2:#D9A20C;--cream:#F6F1E6;--paper:#FBF8F2;--ink:#1D1D24;--grey:#6B6F7B;--green:#7FA53A}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#2A2D36}
+body{font-family:'Raleway',sans-serif;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.toolbar{position:sticky;top:0;z-index:50;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:var(--navy);color:#fff;font-size:13px;border-bottom:2px solid var(--gold)}
+.toolbar b{color:var(--gold);font-family:'Playfair Display',serif;font-size:15px}
+.toolbar span{opacity:.75;margin-right:auto}
+.toolbar button{background:var(--gold);color:var(--navy);border:0;border-radius:3px;padding:7px 12px;font:700 12px 'Raleway';cursor:pointer}
+.toolbar button.on{background:#fff}
+.help{display:none;background:#FFF4CC;color:#3a3200;font-size:12px;padding:8px 16px}
+body.editing .help{display:block}
+.doc{padding:28px 16px 60px;display:flex;flex-direction:column;align-items:center;gap:34px}
+.spread{display:flex;flex-direction:column;align-items:center;gap:8px}
+.sp-label{color:#C9CCD6;font-size:11px;letter-spacing:.15em;text-transform:uppercase}
+.pages{display:flex;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+.single-r .pages{margin-left:148mm}.single-l .pages{margin-right:148mm}
+body.bleed .single-r .pages{margin-left:154mm}body.bleed .single-l .pages{margin-right:154mm}
+/* sheet geometry: screen shows trim, 'show bleed' shows 3mm bleed */
+.sheet{position:relative;width:148mm;height:210mm;overflow:hidden;background:#fff}
+.clip{position:absolute;left:-3mm;top:-3mm;width:154mm;height:216mm}
+body.bleed .sheet{width:154mm;height:216mm}
+body.bleed .clip{left:0;top:0}
+body.bleed .trimline{display:block}
+.crop{display:none}
+.page{position:relative;width:154mm;height:216mm;overflow:hidden;background:var(--paper)}
+.trimline{display:none;position:absolute;left:3mm;top:3mm;right:3mm;bottom:3mm;border:.25mm dashed #e0006a;z-index:40;pointer-events:none}
+@page{size:160mm 222mm;margin:0}
+@media print{
+ html,body{background:#fff}.toolbar,.help,.sp-label{display:none!important}
+ .doc{display:block;padding:0}.spread,.pages{display:block;box-shadow:none;margin:0!important}
+ .sheet{width:160mm!important;height:222mm!important;overflow:hidden;page-break-after:always;break-after:page;background:#fff}
+ .clip{left:3mm!important;top:3mm!important}
+ .trimline{display:none!important}
+ .crop{display:block;position:absolute;background:#000}
+ .crop.tl{left:0;top:6mm;width:5mm;height:.15mm;box-shadow:6mm -6mm 0 0 #fff}
+}
+/* crop marks drawn as pseudo-elements on sheet in print */
+@media print{
+ .sheet::before,.sheet::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+   linear-gradient(#000,#000) 0 6mm/2.6mm .15mm no-repeat,
+   linear-gradient(#000,#000) 6mm 0/.15mm 2.6mm no-repeat,
+   linear-gradient(#000,#000) 100% 6mm/2.6mm .15mm no-repeat,
+   linear-gradient(#000,#000) calc(100% - 6mm) 0/.15mm 2.6mm no-repeat,
+   linear-gradient(#000,#000) 0 calc(100% - 6mm)/2.6mm .15mm no-repeat,
+   linear-gradient(#000,#000) 6mm 100%/.15mm 2.6mm no-repeat,
+   linear-gradient(#000,#000) 100% calc(100% - 6mm)/2.6mm .15mm no-repeat,
+   linear-gradient(#000,#000) calc(100% - 6mm) 100%/.15mm 2.6mm no-repeat}
+ .crop{display:none!important}
+}
+/* placeholder tags */
+.ph{display:inline-block;background:#FFE14D;color:#3a3000;font:800 5.5pt/1 'Raleway';letter-spacing:.08em;padding:.6mm 1.2mm;border-radius:.6mm;vertical-align:middle;text-transform:uppercase}
+.ph.imgtag{position:absolute;left:2mm;top:2mm;z-index:5}
+/* common */
+.gframe{position:absolute;left:7mm;top:7mm;right:7mm;bottom:7mm;border:.5mm solid var(--gold);pointer-events:none;z-index:1}
+.safe{position:absolute;left:13mm;right:13mm;top:13mm;bottom:15mm;z-index:2;display:flex;flex-direction:column;gap:3mm;overflow:hidden}
+.safe.withstrip{bottom:64mm}.safe.withv-r{right:54mm}.safe.withv-l{left:54mm}.safe.withh-r{right:79mm}.safe.withh-l{left:79mm}
+.folio{position:absolute;bottom:8.5mm;left:13mm;right:13mm;font:700 5.6pt 'Raleway';letter-spacing:.06em;color:var(--navy);z-index:3}
+.recto .folio{text-align:right}
+.folio.strip{bottom:61mm}
+.onnavy~.folio,.cover .folio,.top10 .folio{color:#fff}
+.page:has(.navyfill) .folio,.page:has(.trav-shade) .folio,.page:has(.sp-shade) .folio,.page:has(.greenfill) .folio,.page:has(.t10-band) .folio{color:#E9E3D3}
+.bleedimg{position:absolute;inset:0;z-index:0}
+.navyfill{background:radial-gradient(ellipse at 30% 0%,#1d3780,var(--navy) 65%)}
+.greenfill{background:#6E9A2E}
+.ph-wrap{position:relative;overflow:hidden;background:#d9d4c7}
+.ph-wrap .pic{width:100%;height:100%;object-fit:cover;display:block}
+.fill{position:absolute!important;inset:0}
+.kicker{font:700 6.2pt 'Raleway';letter-spacing:.22em;text-transform:uppercase;color:var(--gold2)}
+.kicker.light{color:var(--gold)}
+.kicker2{font:800 7pt 'Raleway';letter-spacing:.12em;color:var(--navy)}
+.label{font:800 6.4pt 'Raleway';letter-spacing:.16em;text-transform:uppercase;color:var(--navy);border-bottom:.35mm solid var(--gold);padding-bottom:1mm;margin-bottom:1.5mm}
+.label.gold{color:var(--gold);border-color:var(--gold)}
+.mt{margin-top:1.5mm}
+h1.sec{font:700 28pt/1 'Playfair Display';color:var(--navy);letter-spacing:-.01em}
+h1.sec.light{color:#fff}
+.gt{color:var(--gold);font-style:italic}
+h1.big{font:700 22pt/1.02 'Playfair Display';color:var(--navy)}
+h1.big i,h2 i,.big2 i{color:var(--gold2);font-weight:400}
+h1.big.light,h1.huge.light{color:#fff}
+h1.big.light i{color:var(--gold)}
+h1.huge{font:900 36pt/0.95 'Playfair Display';color:var(--navy)}
+.body{font:400 7.6pt/1.5 'Raleway';color:#2b2d35}
+.body p+p{margin-top:1.8mm}
+.cols2{column-count:2;column-gap:5mm}
+.cols2 p{break-inside:avoid-column}
+.lede{font:italic 400 9pt/1.4 'Playfair Display';color:var(--navy)}
+.light{color:#EEF0F6}
+.light .lede,.lede.light{color:#fff}
+.small{font:400 5.8pt/1.45 'Raleway'}
+.note{font:italic 400 6pt/1.45 'Raleway';color:var(--grey)}
+.num{font:700 15pt/1 'Playfair Display';color:var(--gold2)}
+.navy{color:var(--navy)!important}
+.corner-logo{position:absolute;right:0;top:0;width:28mm}
+.onnavy{color:#fff}
+/* cover */
+.cover .ph-wrap{background:#111}
+.cv-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,10,30,.72) 0%,rgba(5,10,30,.15) 38%,rgba(5,10,30,.1) 55%,rgba(5,10,30,.85) 100%);z-index:1}
+.cv-frame{position:absolute;left:8mm;right:8mm;top:9mm;bottom:9mm;border:1mm solid var(--gold);z-index:2}
+.cv-top{position:absolute;right:4mm;top:-2.6mm;background:transparent;font:600 6.6pt 'Raleway';letter-spacing:.08em;color:#fff;padding:0 2mm;background:linear-gradient(transparent 40%,rgba(10,15,35,.0))}
+.cv-frame::before{content:'';position:absolute;left:4mm;top:-1mm;width:16mm;height:1mm;background:transparent}
+.cv-logo{position:absolute;left:50%;transform:translateX(-50%);top:22mm;width:72mm;z-index:3}
+.cv-date{position:absolute;left:50%;transform:translateX(-50%);top:70mm;z-index:3;background:#FFD400;color:#1a1a1a;font:800 7.4pt 'Raleway';letter-spacing:.42em;padding:2mm 4mm 2mm 5.5mm;white-space:nowrap}
+.cv-lines{position:absolute;left:14mm;right:14mm;bottom:18mm;z-index:3;display:grid;grid-template-columns:1fr 1fr 1fr;gap:3mm;border-top:.4mm solid var(--gold);padding-top:3mm}
+.cv-lines b{display:block;font:700 8pt/1.15 'Playfair Display';color:#fff}
+.cv-lines span{display:block;font:500 5.8pt/1.35 'Raleway';color:#F2D888;margin-top:.8mm}
+.cv-free{position:absolute;left:14mm;bottom:12.5mm;z-index:3;font:700 5.6pt 'Raleway';letter-spacing:.2em;color:#fff;text-transform:uppercase}
+/* welcome */
+h1.big{max-width:96mm}
+.sign{font:400 7pt 'Raleway'}.sign i{font:italic 700 11pt 'Playfair Display';color:var(--navy)}.sign span{font-size:6pt;color:var(--grey);letter-spacing:.06em}
+.mini-ct{background:var(--navy);color:#fff;padding:3mm 4mm;display:grid;grid-template-columns:1fr 1fr;gap:1mm 5mm;font:500 6.6pt 'Raleway'}
+.mini-ct .label{grid-column:1/-1;color:var(--gold);border-color:var(--gold)}
+.mini-ct span{display:inline-block;width:7mm;color:var(--gold);font:700 8pt 'Playfair Display'}
+.masthead{border-top:.4mm solid var(--gold);padding-top:2mm;font:400 6.2pt/1.5 'Raleway';display:flex;flex-direction:column;gap:.6mm}
+.masthead b{color:var(--navy);display:inline-block;width:20mm}
+.masthead .small{color:var(--grey);margin-top:1mm}
+/* contents */
+.ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.4mm 5mm;margin-top:2mm}
+.ct-row{display:flex;gap:2.5mm;align-items:flex-start;border-bottom:.2mm solid #ddd3bd;padding-bottom:1.6mm}
+.ct-n{font:700 14pt/1 'Playfair Display';color:var(--gold2);min-width:9mm}
+.ct-row b{display:block;font:700 7.8pt/1.2 'Playfair Display';color:var(--navy)}
+.ct-row span{font:400 5.8pt 'Raleway';color:var(--grey)}
+.ct-photo{position:relative;flex:1;min-height:30mm;margin-top:1mm}
+/* art of mastery */
+.expect{list-style:none;display:flex;flex-direction:column;gap:1.4mm;font:400 7.1pt/1.4 'Raleway'}
+.expect li{padding-left:4mm;position:relative}.expect li::before{content:'';position:absolute;left:0;top:1.6mm;width:2mm;height:.5mm;background:var(--gold)}
+.expect b{color:var(--navy)}
+.teambox{background:var(--gold);padding:3mm 4mm;display:grid;grid-template-columns:1fr 1fr;gap:1.6mm 4mm;margin-top:1mm}
+.teambox .label{grid-column:1/-1;color:var(--navy);border-color:var(--navy)}
+.teambox div span{display:block;font:600 5.4pt 'Raleway';letter-spacing:.06em;color:#4b3a00;text-transform:uppercase}
+.teambox b{display:block;font:700 8pt 'Playfair Display';color:var(--navy)}
+.teambox i{font:italic 400 5.6pt 'Raleway';color:var(--navy)}
+.strip3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2.5mm;flex:1;min-height:22mm}
+.strip3 .ph-wrap{position:relative}
+.strip3 .fill{position:absolute}
+/* taste */
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.steps div{border-left:.6mm solid var(--gold);padding-left:3mm}
+.steps b{display:block;font:700 7.6pt 'Playfair Display';color:var(--navy);margin:1mm 0}
+.steps p{font:400 6.6pt/1.45 'Raleway'}
+.tastes{display:grid;grid-template-columns:repeat(5,1fr);gap:2mm}
+.taste{background:var(--navy);color:#fff;padding:3mm 2.2mm;display:flex;flex-direction:column;gap:1mm;min-height:38mm}
+.taste .tl{font:900 22pt/1 'Playfair Display';color:var(--gold)}
+.taste .tw{font:700 14pt/1 'Bebas Neue';letter-spacing:.04em;color:#fff}.taste .tw small{font-size:9pt;color:var(--gold)}
+.taste b{font:700 7pt/1.15 'Playfair Display'}
+.taste span{font:400 5.6pt/1.4 'Raleway';color:#D6DBEA}
+/* ladder */
+.flow{display:grid;grid-template-columns:1fr 5mm 1fr 5mm 1fr;align-items:stretch;gap:1mm}
+.flow>div:not(.arrow){background:var(--gold);padding:2.5mm;text-align:center}
+.flow>div.dark{background:var(--royal);color:#fff}
+.flow b{display:block;font:700 7.5pt 'Playfair Display';color:var(--navy)}.flow .dark b{color:#fff}
+.flow span{font:400 5.6pt/1.35 'Raleway'}
+.arrow{display:flex;align-items:center;justify-content:center;font:700 12pt 'Raleway';color:var(--navy)}
+table.ladder{width:100%;border-collapse:collapse;font:500 6.6pt 'Raleway'}
+.ladder th{background:var(--navy);color:#fff;font:700 6pt 'Raleway';letter-spacing:.08em;padding:1.6mm 1.4mm;text-align:center}
+.ladder th:nth-child(2){text-align:left}
+.ladder td{border-bottom:.2mm solid #cfc6b0;padding:1.45mm 1.4mm;text-align:center}
+.ladder td:nth-child(2){text-align:left;font-weight:700;color:var(--navy)}
+.ladder tr.q td{background:#F7E3A6}
+/* round 1 */
+.r1-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:.4mm solid var(--gold);padding-bottom:2mm}
+.r1-date{text-align:right}.r1-date b{display:block;font:400 14pt 'Bebas Neue';letter-spacing:.05em;color:var(--royal)}
+.r1-date span{font:600 6pt 'Raleway';color:var(--navy)}
+.r1-body{display:grid;grid-template-columns:34mm 1fr;gap:4mm;align-items:start}
+.r1-pic{height:40mm}
+.fixture{display:flex;flex-direction:column}
+.fx{display:grid;grid-template-columns:1fr 8mm 1fr;align-items:center;padding:1.7mm 3mm;font:500 6.8pt 'Raleway';color:#222}
+.fx.alt{background:var(--gold)}
+.fx em{font:italic 700 9pt 'Playfair Display';color:var(--navy);text-align:center}
+.fx span:last-child{text-align:right}
+.theme-box{background:#0b0b0f;color:#fff;padding:3mm 4mm}
+.theme-box b{font:400 12pt 'Bebas Neue';letter-spacing:.06em;color:var(--gold)}
+.theme-box p{font:400 6.8pt/1.45 'Raleway'}
+/* calendar */
+.cal-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.4mm 4mm}
+.cal{display:flex;gap:3mm;align-items:flex-start;border-top:.35mm solid var(--gold);padding-top:2mm}
+.cal b{display:block;font:700 8.4pt/1.15 'Playfair Display';color:var(--navy)}
+.cal i{display:block;font:700 5.8pt 'Raleway';color:var(--royal);letter-spacing:.06em;text-transform:uppercase;margin:.6mm 0}
+.cal span{font:400 6pt/1.35 'Raleway';color:#444}
+.gf{display:flex;gap:4mm;align-items:center;background:var(--navy);color:#fff;padding:3mm 4mm;margin-top:auto}
+.gf .num{color:var(--gold)}.gf b{display:block;font:700 10pt 'Playfair Display'}.gf span{font:500 6.4pt 'Raleway';color:#F2D888}
+/* teams */
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:3mm;flex:1}
+.tgrid.g12{grid-template-columns:repeat(4,1fr);gap:2mm;flex:none}
+.tcard{border:.3mm solid #d8cfb8;background:#fff;display:flex;flex-direction:column;padding-bottom:2mm}
+.tc-img{background:repeating-linear-gradient(135deg,#ece6d6 0 2mm,#f6f2e8 2mm 4mm);flex:1;min-height:20mm;display:flex;align-items:center;justify-content:center}
+.tcard.sm .tc-img{min-height:14mm;flex:none;height:14mm}
+.tcard b{font:700 8pt 'Playfair Display';color:var(--navy);padding:1.5mm 2mm 0}
+.tcard span{font:600 6.4pt 'Raleway';padding:0 2mm}
+.tcard i{font:italic 400 5.6pt 'Raleway';color:var(--grey);padding:0 2mm}
+.calmini{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5mm;margin-top:auto;background:var(--navy);padding:2.5mm;color:#fff}
+.calmini div{font:400 5.4pt/1.3 'Raleway'}.calmini b{color:var(--gold);font:700 7pt 'Playfair Display';margin-right:1mm}
+.calmini i{display:block;color:#F2D888}
+/* mixology */
+.rcps{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;flex:1}
+.rcp{display:flex;flex-direction:column;background:#0b0b0f;color:#fff}
+.rcp-img{height:44mm;background:#fff}
+.rcp-img .pic{object-fit:cover}
+.rcp-body{padding:2.6mm;display:flex;flex-direction:column;gap:2mm}
+.rcp h3{font:400 14pt/1 'Bebas Neue';letter-spacing:.03em;color:var(--gold)}
+.ing{display:flex;flex-direction:column;font:400 6.1pt/1.4 'Raleway'}
+.ing b,.rcp p b{color:var(--gold);font-weight:600}
+.rcp p{font:400 6.1pt/1.45 'Raleway'}
+/* news */
+.news{display:grid;grid-template-columns:1fr 1fr;gap:4mm 5mm}
+.news div{border-top:.5mm solid var(--gold);padding-top:2mm}
+.news h3{font:700 10.5pt/1.1 'Playfair Display';color:var(--navy);margin-bottom:1.4mm}
+.news p{font:400 6.8pt/1.5 'Raleway'}
+/* what's hot */
+.hot{display:flex;flex-direction:column;gap:2.5mm;font:500 10pt/1.25 'Playfair Display';color:#fff;margin-top:2mm}
+.hot span{color:var(--gold);margin-right:2.5mm}
+.chasers{margin-top:auto;background:rgba(255,255,255,.07);border-left:.8mm solid var(--gold);padding:3mm;display:flex;flex-direction:column;gap:2mm;font:400 6.6pt/1.45 'Raleway';color:#fff}
+.chasers i{color:#F2D888;font-size:5.8pt}
+/* reviews */
+.prods{display:grid;grid-template-columns:repeat(3,1fr);gap:3.5mm;flex:1}
+.prod{display:flex;flex-direction:column;gap:1.6mm}
+.prod-img{flex:1;min-height:40mm;background:linear-gradient(160deg,#E2382E,#B3121D);display:flex;align-items:center;justify-content:center}
+.prod h3{font:700 9pt 'Playfair Display';color:var(--navy)}
+.prod p{font:400 6.4pt/1.45 'Raleway'}
+.stars{color:var(--gold2);font-size:9pt;letter-spacing:.1em}
+.win{display:grid;grid-template-columns:3fr 1fr;gap:2mm;font:700 9pt 'Raleway'}
+.win b{background:var(--gold);color:var(--navy);padding:2.5mm 3mm;border:.6mm solid var(--gold2)}
+.win span{background:#C8141F;color:#fff;padding:2.5mm 3mm;text-align:center;font-family:'Playfair Display';font-style:italic}
+/* top10 */
+.t10-band{position:absolute;left:0;top:0;bottom:0;width:62mm;background:#7A3B2A;z-index:0}
+.page:has(.t10-band){background:#B8955B}
+.t10{display:grid!important;grid-template-columns:44mm 1fr;gap:9mm}
+.t10-left h2{font:700 13pt/1.1 'Playfair Display';color:#fff;margin:1mm 0 3mm}
+.t10-left ol{list-style:none;display:flex;flex-direction:column;gap:1.8mm}
+.t10-left li{display:grid;grid-template-columns:6mm 1fr;color:#fff}
+.t10-left li span{font:700 11pt/1 'Playfair Display';color:var(--gold);grid-row:span 2}
+.t10-left li b{font:700 7.2pt 'Raleway'}.t10-left li i{font:italic 400 6pt 'Playfair Display';color:#F3DDB4}
+.t10-right{display:flex;flex-direction:column;gap:2mm;position:relative}
+.t10-right h2{font:700 15pt/1.05 'Playfair Display';color:#fff!important}
+.t10-right h2 i{color:#5a1f12}
+.gloss{display:flex;flex-direction:column;gap:1.5mm}
+.gloss p{font:400 6.3pt/1.4 'Raleway';color:#24170a}
+.gloss b{font:700 7.5pt 'Playfair Display';color:#fff;margin-right:1mm}
+.atok{position:absolute;right:-6mm;bottom:-4mm;font:900 52pt/0.8 'Playfair Display';color:rgba(255,255,255,.28)}.atok span{font-size:30pt;font-weight:400}
+.t10-left .small{margin-top:auto}
+/* traveller */
+.trav-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,14,40,.92) 0 55%,rgba(8,14,40,.35));z-index:1}
+.trav{justify-content:flex-end}
+.addr{font:600 6.4pt 'Raleway';color:#F2D888;letter-spacing:.04em}
+.trav-box{max-width:80mm;display:flex;flex-direction:column;gap:2mm;font:400 7pt/1.5 'Raleway'}
+/* shaken */
+.ss-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2.5mm;height:60mm}
+.ss-img{position:relative}
+.ss-one{height:58mm;display:flex}.ss-one .ss-img{flex:1}
+.ss-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm}
+.ss-cols.one{grid-template-columns:1fr}
+.ss h3{font:700 10pt/1.15 'Playfair Display';color:var(--gold);margin-bottom:1.2mm}
+.ss p{font:400 6.8pt/1.5 'Raleway';color:#E6E9F2}
+/* recommended */
+.top55{bottom:auto;height:118mm}
+.top55::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.05) 40%,rgba(0,0,0,.65))}
+.rec{top:13mm}
+.rec-title{height:96mm;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:4mm}
+.facts{display:flex;flex-wrap:wrap;gap:1mm 4mm;font:400 6.2pt 'Raleway';border-top:.4mm solid var(--gold);padding-top:1.8mm;margin-top:auto}
+.facts b{color:var(--navy)}
+/* bars in brief */
+.bib-head{font:700 30pt/0.9 'Raleway';letter-spacing:-.02em;color:var(--navy);text-transform:lowercase}
+.bibs{display:grid;grid-template-columns:repeat(3,1fr);gap:2.5mm;flex:1}
+.bib{background:#0b0b0f;color:#fff;display:flex;flex-direction:column}
+.bib-img{height:30mm}
+.bib h3{font:700 10pt/1 'Raleway';color:#8FB3B0;padding:2mm 2mm 0;text-transform:lowercase}
+.bib .addr{padding:.6mm 2mm;font-size:5.2pt;color:#ccc}
+.bib p{font:400 5.7pt/1.45 'Raleway';padding:1mm 2mm;flex:1}
+.bibt{font:400 5.2pt 'Raleway';margin:0 2mm;border-top:.3mm solid #fff;padding-top:1mm}
+.bibt td:first-child{color:#aaa;width:13mm}
+.score{background:#7FA5A2;color:#0d1f1e;padding:1.6mm 2mm;display:flex;flex-direction:column;font:500 5.3pt/1.4 'Raleway';margin-top:1.5mm}
+.key{font:400 5.2pt 'Raleway';color:var(--grey)}
+/* spirit */
+.sp-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.85) 0 18%,rgba(10,10,20,.55) 45%,rgba(10,10,20,.9));z-index:1}
+blockquote{font:italic 400 10pt/1.35 'Playfair Display';border-left:.8mm solid var(--gold);padding-left:3mm;max-width:92mm}
+.sp{font:400 6.8pt/1.55 'Raleway';margin-top:auto}
+.sp p{margin-bottom:1.6mm}
+.stys{display:flex;flex-direction:column;gap:2.5mm}
+.sty{display:flex;gap:3.5mm;align-items:flex-start;border-top:.3mm solid #d8cfb8;padding-top:2mm}
+.sty b{font:700 9.5pt 'Playfair Display';color:var(--navy)}.sty p{font:400 6.8pt/1.45 'Raleway'}
+/* wwyln */
+.wwg{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:2mm;flex:1}
+.ww{position:relative;border:.6mm solid #fff}
+.ww span{position:absolute;left:1mm;bottom:1mm;background:#fff;color:#000;font:700 6pt 'Raleway';padding:.4mm 1mm;z-index:2}
+/* back extras */
+.x3{display:grid!important;grid-template-columns:1fr 1fr 1fr;gap:4mm}
+.x3 .col{display:flex;flex-direction:column;gap:1.8mm;font:400 6.1pt/1.45 'Raleway'}
+.comp{background:#1F2533;color:#fff;margin:-6mm 0 0 -6mm;padding:6mm 3mm 3mm 6mm}
+.recto .comp{margin:-6mm 0 0 -6mm}
+.wm{width:30mm}
+.big2{font:700 13pt/1.05 'Playfair Display';color:#fff}
+.cbox{border:.3mm solid rgba(255,255,255,.3);padding:2mm}
+.cbox b{font:700 8pt 'Playfair Display';color:var(--gold)}
+.iv-img{height:30mm}
+.iv p b{color:var(--royal)}
+.clublogo{width:34mm}
+.tiers{display:flex;flex-direction:column;gap:1mm}
+.tiers div{display:flex;justify-content:space-between;background:var(--navy);color:#fff;padding:1.5mm 2mm}
+.tiers b{font:700 6.5pt 'Playfair Display'}.tiers span{color:var(--gold);font-weight:700}
+.join{margin-top:auto;border:.5mm dashed var(--royal);padding:2.5mm;text-align:center;font:700 6.2pt/1.5 'Raleway';color:var(--royal)}
+/* ads */
+.ad{position:absolute;z-index:4;background:repeating-linear-gradient(135deg,#EDE6D3 0 2.2mm,#F7F2E6 2.2mm 4.4mm);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ad-full{inset:0}
+.ad-hstrip{left:0;right:0;bottom:0;height:58mm}
+.ad-vstrip{top:0;bottom:0;width:48mm}.ad-half{top:0;bottom:0;width:73mm}
+.ad-vstrip.ad-r,.ad-half.ad-r{right:0}.ad-vstrip.ad-l,.ad-half.ad-l{left:0}
+.ad::after{content:'';position:absolute;left:3mm;right:3mm;top:3mm;bottom:3mm;border:.35mm dashed var(--gold2);pointer-events:none}
+.ad-hstrip::after{top:0;border-top-style:solid}
+.ad-vstrip.ad-r::after,.ad-half.ad-r::after{left:0;border-left-style:solid}
+.ad-vstrip.ad-l::after,.ad-half.ad-l::after{right:0;border-right-style:solid}
+.ad-inner{text-align:center;background:rgba(255,255,255,.88);border:.3mm solid var(--gold2);padding:3mm 4mm;max-width:85%;display:flex;flex-direction:column;gap:1mm;align-items:center;font-family:'Raleway'}
+.ad-tag{font:800 5.2pt 'Raleway';letter-spacing:.2em;color:var(--gold2)}
+.ad-name{font:700 12pt/1 'Playfair Display';color:var(--navy)}
+.ad-vstrip .ad-name,.ad-half .ad-name{font-size:9pt}
+.ad-size{font:400 14pt/1 'Bebas Neue';letter-spacing:.04em;color:var(--royal)}
+.ad-supply{font:500 5.5pt/1.35 'Raleway';color:#444}
+.ad-note{font:italic 400 5.5pt 'Raleway';color:var(--grey)}
+.ad-book{font:600 5pt 'Raleway';color:var(--navy);border-top:.2mm solid #d8cfb8;padding-top:1mm;margin-top:.5mm}
+.ad-vstrip .ad-inner{padding:2mm 1.5mm;max-width:90%}
+.ad-hstrip .ad-inner{flex-direction:column;padding:2mm 4mm}
+.adart{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ad.has-art{background:none}.ad.has-art .ad-inner{display:none}.ad.has-art::after{display:none}
+/* editing */
+body.editing [contenteditable="true"]:hover{outline:.3mm dashed rgba(23,71,166,.6)}
+body.editing .pic,body.editing .ad{cursor:copy}
+
+.hrow{display:flex;justify-content:space-between;align-items:flex-start;gap:4mm}
+.hlogo{width:26mm;flex:none}
+.corner-logo{display:none}
+.flexpic{flex:1;min-height:12mm}
+.strip3 .ph-wrap{height:100%}
+.page:has(.ad-vstrip.ad-r) .folio{right:54mm}.page:has(.ad-vstrip.ad-l) .folio{left:54mm}
+.page:has(.ad-half.ad-r) .folio{right:79mm}.page:has(.ad-half.ad-l) .folio{left:79mm}
+.cv-logo{width:60mm;top:20mm}
+.cv-date{top:66mm}
+.cv-frame{border-top:0}
+.cv-frame::before{content:'';position:absolute;top:0;left:-1mm;width:9mm;height:1mm;background:var(--gold)}
+.cv-frame::after{content:'';position:absolute;top:0;left:12mm;right:76mm;height:1mm;background:var(--gold)}
+.cv-top{top:-2.4mm;right:2mm;font-size:6.4pt;background:none}
+.r1-pic{height:30mm}.fx{padding:1.3mm 3mm}
+.bib-img{height:auto;flex:1;min-height:30mm}.bib p{flex:none}
+.rcp-img{height:auto;flex:1;min-height:40mm}
+.ss-one{height:auto;flex:1}.ss-grid{height:96mm}.ss p{font-size:7.4pt}.ss h3{font-size:11pt}
+.top55{height:106mm}.rec-title{height:86mm}
+.rec .cols2{font-size:7.4pt}
+.rec-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2.5mm;flex:1;min-height:20mm}
+.rec-strip .ph-wrap{height:100%}
+.prod-img{flex:none;height:58mm}
+.prods{flex:none}
+.gloss{gap:1.1mm}.t10-right h2{font-size:13.5pt}
+.clubchip{background:var(--navy);padding:2.5mm;display:flex;justify-content:center}
+.clublogo{width:30mm}
+.comp .flexpic{margin:0 -3mm -3mm -6mm}
+
+.rcp-img{flex:none;height:60mm}.rcp-body{flex:1}
+.bib-img{flex:none;height:62mm}.bib p{flex:1;font-size:6.2pt}
+.bleedimg>.ph.imgtag{left:8mm;top:8mm}
+.tcard.sm .tc-img{height:19mm}
+
+.atok{right:0;bottom:0;font-size:40pt;color:rgba(255,255,255,.55);z-index:3}
+.trav .lede{color:#fff}
+.bleedimg{z-index:auto}
+.t10-right .flexpic{margin-top:2mm}
+
+/* Issue 01 magazine cover */
+.ci-bleed{position:absolute;inset:0;overflow:hidden;z-index:0}
+.ci-bleed img{width:100%;height:100%;object-fit:cover;filter:blur(3px);transform:scale(1.04)}
+.ci-trim{position:absolute;left:3mm;top:3mm;width:148mm;height:210mm;overflow:hidden;z-index:1}
+.ci-trim .pic{width:100%;height:100%;object-fit:fill;display:block}
+.ci-r1{position:absolute;z-index:3;left:11.1mm;top:152.94mm;font:700 7.6pt/1 'Raleway';letter-spacing:.2em;color:#D9B35E;white-space:nowrap}
+.ci-panel{position:absolute;z-index:3;left:96.2mm;top:135.32mm;width:49.51mm;height:70.3mm;background:linear-gradient(180deg,#1b2650,#0f1c46);padding:3.6mm 3.6mm 2mm;display:flex;flex-direction:column}
+.ci-head{font:700 6.6pt 'Raleway';letter-spacing:.26em;color:#D9B35E;border-bottom:.2mm solid rgba(217,179,94,.6);padding-bottom:2mm;margin-bottom:1.2mm}
+.ci-item{border-bottom:.2mm solid rgba(255,255,255,.18);padding:1.5mm 0;font:400 6.6pt/1.35 'Raleway';color:#fff}
+.ci-item:last-child{border-bottom:0}
+.ci-item span{display:block;font:700 5.2pt 'Raleway';letter-spacing:.16em;color:#D9B35E;margin-bottom:.6mm}
+.ci-item b{font:700 9pt/1.15 'Playfair Display';color:#fff}.ci-item b i{color:#D9B35E;font-weight:700}
+/* ===== archive-based sections (Oct 2026) ===== */
+.sample-tag{position:absolute;left:5mm;top:5mm;z-index:6;background:rgba(14,31,77,.85);color:#F2D888;font:800 4.6pt 'Raleway';letter-spacing:.14em;padding:.9mm 1.6mm;border:.2mm solid var(--gold)}
+.ad-hstrip .sample-tag{top:2mm;left:4mm}
+.ad-half.ad-r .sample-tag{left:2mm}.ad-half .sample-tag{max-width:64mm}
+.arch{display:inline-block;align-self:flex-start;background:var(--navy);color:#F2D888;font:800 4.8pt 'Raleway';letter-spacing:.16em;padding:.7mm 1.6mm}
+.blackfill{background:#0a0a0c}
+.absfill{background:radial-gradient(ellipse at 70% 20%,#3f6b2a,#16260f 70%)}
+.page:has(.blackfill) .folio,.page:has(.absfill) .folio{color:#E9E3D3}
+/* news + hot */
+.nh{display:grid;grid-template-columns:1.35fr 1fr;gap:4mm;flex:1;min-height:0}
+.nh-news{display:flex;flex-direction:column;gap:2.4mm}
+.nh-news h3{font:700 8.6pt/1.15 'Playfair Display';color:var(--navy);margin-bottom:.6mm}
+.nh-news p{font:400 6.2pt/1.45 'Raleway'}
+.nh-hot{background:#E8601C;color:#fff;padding:3mm;display:flex;flex-direction:column;gap:1.6mm}
+.hot-h{font:700 20pt/0.95 'Playfair Display';color:#fff}.hot-h i{color:#FFE2A6}
+.hot-i{font:700 6.6pt/1.3 'Raleway';border-top:.25mm solid rgba(255,255,255,.45);padding-top:1.4mm}
+/* what's hot 2 */
+.wh2{display:grid;grid-template-columns:1fr 1.15fr;gap:4mm;flex:1;min-height:0}
+.wh2-hot{background:#E8601C;color:#fff;padding:3.5mm;display:flex;flex-direction:column;gap:2mm}
+.wh2-hot .hot-h{font-size:26pt}
+.wh2-side{display:flex;flex-direction:column;gap:1.8mm}
+.wh2-side h1.sec{font-size:19pt}
+.letter{background:#fff;border-left:.8mm solid var(--gold);padding:1.8mm 2.4mm;font:italic 400 6.6pt/1.4 'Playfair Display';color:var(--navy)}
+.letter i{display:block;font:600 5.4pt 'Raleway';color:var(--grey);margin-top:.8mm;font-style:normal}
+.letter-cta{font:700 6pt 'Raleway';color:var(--royal);margin-top:auto}
+.trivia{display:grid;grid-template-columns:1fr 1fr;gap:3mm}
+.trivia div{background:var(--navy);color:#fff;padding:2.2mm}
+.trivia b{font:700 7.4pt 'Playfair Display';color:var(--gold)}
+.trivia p{font:400 5.9pt/1.4 'Raleway';margin-top:.6mm}
+/* championship fixture */
+.cf-top{display:flex;justify-content:space-between;align-items:flex-start}
+.cf-logo{width:30mm}
+.cf-panel{background:#F4D57E;border-radius:5mm;padding:3mm;display:grid;grid-template-columns:1.25fr 1fr;gap:3mm}
+.cf-h{font:800 6.4pt 'Raleway';letter-spacing:.1em;text-transform:uppercase;color:var(--navy);margin-bottom:1.4mm;display:flex;flex-direction:column}
+.cf-h span{font:600 5.4pt 'Raleway';letter-spacing:.04em;text-transform:none;color:#5b4a10}
+.cf-row{display:grid;grid-template-columns:1fr auto 1fr;gap:1.5mm;align-items:center;font:600 5.6pt 'Raleway';color:#1d1d24;padding:.9mm 0;border-bottom:.2mm solid rgba(14,31,77,.2)}
+.cf-row em{font:italic 700 10pt 'Playfair Display';color:#fff;text-shadow:0 0 .6mm rgba(0,0,0,.25)}
+.cf-row span:last-child{text-align:right}
+.cf-note{margin-top:1.2mm;font:italic 400 5.2pt 'Raleway';color:#5b4a10}
+.cf-season{border-left:.4mm solid var(--navy);padding-left:3mm}
+.cf-rd{display:grid;grid-template-columns:5mm 1fr auto;gap:1.2mm;font:600 5.6pt 'Raleway';padding:.75mm 0;color:#1d1d24;border-bottom:.2mm solid rgba(14,31,77,.15)}
+.cf-rd b{color:var(--navy)}.cf-rd i{font-style:normal;color:#5b4a10;font-size:5.1pt}
+.cf-rd.gf b{color:#B8860B}
+.cf-3{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;flex:1;min-height:0}
+.cf-3>div{border-left:.4mm solid var(--navy);padding-left:2.2mm;display:flex;flex-direction:column;gap:1.2mm}
+.cf-3 h3{font:800 7pt 'Raleway';letter-spacing:.08em;text-transform:uppercase;color:var(--navy)}
+.cf-3 p{font:400 5.8pt/1.45 'Raleway'}
+.cf-tw div{display:flex;justify-content:space-between;font:600 5.9pt 'Raleway';border-bottom:.2mm solid #ddd3bd;padding:.5mm 0}
+.cf-tw span{font:700 7pt 'Playfair Display';color:var(--gold2)}
+/* bars in brief (archive) */
+.bb-top{display:flex;align-items:flex-end;justify-content:space-between}
+.bbs3{display:grid;grid-template-columns:repeat(3,1fr);gap:2.4mm;flex:1;min-height:0}
+.bb{background:#0b0b0f;color:#fff;display:flex;flex-direction:column;min-height:0}
+.bb-img{height:24mm;flex:none}
+.bb h3{font:700 9pt/1 'Raleway';color:#8FB3B0;padding:1.6mm 2mm 0;text-transform:lowercase}
+.bb .addr{padding:.4mm 2mm;font-size:5pt;color:#ccc}
+.bb p{font:400 5.4pt/1.42 'Raleway';padding:.6mm 2mm;flex:1;min-height:0;overflow:hidden}
+.bbt{font:400 4.8pt/1.3 'Raleway';margin:0 2mm;border-top:.25mm solid #fff;padding-top:.6mm}
+.bbt td:first-child{color:#aaa;width:11mm;vertical-align:top}
+.bbs{background:#8FB3B0;color:#0b0b0f;margin-top:1.2mm;padding:1.2mm 2mm;font:500 4.9pt/1.35 'Raleway'}
+.bbs b{display:block;font:800 5.2pt 'Raleway';letter-spacing:.04em}
+.bbs div{display:flex;justify-content:space-between}
+.bbs .off{color:rgba(0,0,0,.18)}
+.bbs .rec{display:block;margin-top:.4mm}.bbs .rec span{display:block;font-weight:700}
+.bbkey{font:italic 400 4.9pt/1.35 'Raleway';color:var(--grey)}
+/* featured bars */
+.fb-top{display:flex;justify-content:space-between;align-items:flex-end}
+.fb2{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm;flex:1;min-height:0}
+.fb{display:flex;flex-direction:column;position:relative;min-height:0}
+.fb-img{height:62mm;flex:none}
+.fb-name{position:absolute;left:3mm;top:46mm;font:700 21pt/1 'Bebas Neue';letter-spacing:.02em;color:#fff;text-shadow:0 .5mm 2mm rgba(0,0,0,.7)}
+.fb-body{padding:2.5mm 1mm 0;display:flex;flex-direction:column;gap:1.6mm;font:400 6pt/1.5 'Raleway';color:#e8e8ea}
+.fb-body .addr{text-align:center}
+.fb-type{font:600 5.6pt 'Raleway';border-top:.2mm solid #555;padding-top:1mm}.fb-type b{color:var(--gold)}
+/* whisky review */
+.wks{display:flex;flex-direction:column;gap:2.5mm;flex:1;min-height:0}
+.wk{display:grid;grid-template-columns:15mm 1fr;gap:2.5mm;align-items:start;border-bottom:.25mm solid #ddd3bd;padding-bottom:2mm}
+.wk-img{height:23mm;background:#000}
+.wk-img .pic{object-fit:contain!important}
+.wk h3{font:700 8.4pt/1.1 'Playfair Display';color:var(--navy)}
+.wk p{font:400 5.8pt/1.45 'Raleway';margin:.6mm 0}
+.wk .stars{font-size:7pt}
+/* absinthe */
+.abs .huge{font-size:40pt}
+.abs-lede{font:italic 400 8.2pt/1.4 'Playfair Display';color:#E8F2D2}
+.abs-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:4mm;flex:1;min-height:0}
+.abs-txt p{font:400 6.1pt/1.5 'Raleway';color:#F0F4E8}
+.abs-txt p+p{margin-top:1.8mm}
+.abs-side{display:flex;flex-direction:column;gap:2.2mm;min-height:0}
+.abs-img{height:46mm;flex:none;border:.5mm solid #cfe3a8}
+.abs-box{background:rgba(255,255,255,.1);border-left:.8mm solid #B9D77A;padding:1.8mm 2.2mm}
+.abs-box b{font:700 7pt 'Playfair Display';color:#D7EBA9}
+.abs-box p{font:400 5.7pt/1.42 'Raleway';color:#fff;margin-top:.5mm}
+/* polaroid photo page */
+.polg{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,minmax(0,1fr));gap:3mm 2.6mm;flex:1;min-height:0;padding:1mm}
+.pol{background:#fff;padding:1.3mm 1.3mm 4.5mm;position:relative;box-shadow:0 .6mm 1.5mm rgba(0,0,0,.35);display:flex}
+.pol-img{flex:1}
+.pol span{position:absolute;left:1.6mm;bottom:.8mm;font:700 5.6pt 'Raleway';color:#333}
+
+.wk p{font-size:5.6pt}.wks{gap:1.8mm}
+
+.nh-r{display:flex;flex-direction:column;gap:3mm}
+.nh-news .flexpic{flex:1;min-height:20mm}
+.trivia1{background:var(--navy);color:#fff;padding:2.4mm}
+.trivia1 b{font:700 7.4pt 'Playfair Display';color:var(--gold)}
+.trivia1 p{font:400 5.9pt/1.4 'Raleway';margin-top:.6mm}
+.bb p{font-size:6.1pt;line-height:1.45}.bbs .dt{letter-spacing:.3mm}
+
+/* live Issue 01 cover (bleed coordinates = trim + 3mm) */
+.cl-photo{position:absolute;inset:0;z-index:0;overflow:hidden;background:#2a1a14}
+.cl-photo .pic{width:100%;height:100%;object-fit:cover;object-position:50% 0%;display:block}
+.cl-top-fade{position:absolute;left:0;right:0;top:0;height:50mm;z-index:1;background:linear-gradient(180deg,rgba(246,244,240,.99) 0%,rgba(246,244,240,.95) 34%,rgba(246,244,240,.7) 58%,rgba(246,244,240,.25) 82%,rgba(246,244,240,0) 100%)}
+.cl-bot-fade{position:absolute;left:0;right:0;bottom:0;height:100mm;z-index:1;background:linear-gradient(180deg,rgba(16,28,70,0) 0%,rgba(19,31,75,.55) 30%,rgba(17,29,72,.92) 55%,#0f1c46 78%)}
+.cl-kick{position:absolute;z-index:3;left:11.3mm;top:6.1mm;font:800 4.7pt 'Raleway';letter-spacing:.2em;color:#16213f;white-space:nowrap}
+.cl-code{position:absolute;z-index:3;right:11.4mm;top:6.1mm;font:800 4.7pt 'Raleway';letter-spacing:.16em;color:#16213f}
+.cl-word{position:absolute;z-index:3;left:11.2mm;top:10.6mm;width:41.6mm}
+.cl-mag{position:absolute;z-index:3;left:12.1mm;top:34.6mm;font:700 6.9pt 'Raleway';letter-spacing:.62em;color:#16213f}
+.cl-issue{position:absolute;z-index:3;right:11.4mm;top:13.3mm;text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+.cl-issue b{font:700 25pt/0.9 'Playfair Display';color:#14204a}
+.cl-issue span{font:800 6.4pt 'Raleway';letter-spacing:.14em;color:#14204a;margin-top:1.6mm}
+.cl-issue i{font:800 5.3pt 'Raleway';font-style:normal;letter-spacing:.16em;color:#B8892A;margin-top:2.1mm}
+.cl-lockup{position:absolute;z-index:3;left:10.4mm;top:131.6mm;width:26.4mm}
+.cl-head{position:absolute;z-index:3;left:11.1mm;top:158.6mm;font:700 37.4pt/0.97 'Playfair Display';color:#fff;letter-spacing:-.005em}
+.cl-head i{color:#D9B35E;font-style:italic}
+.cl-stand{position:absolute;z-index:3;left:11.3mm;top:186.4mm;width:76mm;font:400 8.1pt/1.42 'Raleway';color:#fff}
+.cl-band{position:absolute;z-index:3;left:11.3mm;top:199.1mm;width:50.8mm;height:6.3mm;background:#D9B35E;display:flex;align-items:center;justify-content:center;font:800 5.9pt 'Raleway';letter-spacing:.24em;color:#14204a}
+.cover .ci-r1{top:152.4mm;font-size:6.8pt}
+
+.cachfill{background:radial-gradient(ellipse at 70% 15%,#2f7a43,#0f2a19 72%)}
+.page:has(.cachfill) .folio{color:#E9E3D3}
+.cc{background:rgba(255,255,255,.1);border-left:.8mm solid #F2C94C;padding:1.4mm 2mm}
+.cc b{font:700 7pt 'Playfair Display';color:#F7DD8A}.cc span{display:block;font:600 5.2pt/1.35 'Raleway';color:#DDEBD8;margin:.4mm 0}.cc p{font:400 5.4pt/1.38 'Raleway';color:#fff}
+.trav h1 i{color:var(--gold);font-weight:400}
+.trav-info{display:flex;flex-direction:column;gap:.6mm;border-top:.3mm solid rgba(255,255,255,.35);padding-top:1.6mm;font:500 6pt 'Raleway'}
+.trav-info b{color:var(--gold);margin-right:1.5mm}
+
+/* shaken & stirred bubbles */
+.ss{gap:2.4mm}
+.ss-top{display:flex;gap:4mm;align-items:center;border-bottom:.4mm solid #8a6d2c;padding-bottom:2.4mm}
+.ss-spons{width:27mm;flex:none;display:flex;flex-direction:column;gap:.8mm}
+.ss-spons img{width:27mm;display:block}
+.ss-spons span{font:800 3.8pt 'Raleway';letter-spacing:.1em;color:#D9B35E}
+.ss .kicker{color:#D9B35E}
+.ss-sub{font:italic 400 7pt 'Playfair Display';color:#ddd}
+.ss-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,minmax(0,1fr));gap:3mm 5mm;flex:1;min-height:0}
+.sb{display:flex;flex-direction:column;align-items:center;text-align:center;min-height:0}
+.sb-bub{position:relative;width:46mm;height:27mm;flex:none;margin-bottom:2mm}
+.sb-img{width:100%;height:100%;border-radius:50%;border:.5mm solid #E8B524;overflow:hidden}
+.sb-bub::after{content:'';position:absolute;bottom:-2.6mm;width:0;height:0;border-left:2.4mm solid transparent;border-right:2.4mm solid transparent;border-top:4.2mm solid #E8B524}
+.tail-r::after{right:8mm;transform:rotate(-28deg)}.tail-l::after{left:8mm;transform:rotate(28deg)}
+.sb h3{font:400 13pt/1 'Bebas Neue';letter-spacing:.03em;margin-bottom:.6mm}
+.c-g{color:#F2C230}.c-r{color:#E8313A}.c-t{color:#4FB9D9}
+.sb p{font:400 5.9pt/1.38 'Raleway';color:#f1f1f1;max-width:58mm}
+.ss .sb h3.c-g{color:#F2C230!important}.ss .sb h3.c-r{color:#E8313A!important}.ss .sb h3.c-t{color:#4FB9D9!important}
+.sb-bub::after{bottom:-3.4mm;border-left:1.6mm solid transparent;border-right:1.6mm solid transparent;border-top:4.4mm solid #E8B524}
+.tail-r::after{right:9mm;transform:rotate(-35deg)}.tail-l::after{left:9mm;transform:rotate(35deg)}
+.sb h3{margin-top:1.2mm}
+
+/* third-page vertical ad */
+.ad-third{top:0;bottom:0;width:52mm}.ad-third.ad-r{right:0}.ad-third.ad-l{left:0}
+.ad-third.ad-r::after{left:0;border-left-style:solid}.ad-third.ad-l::after{right:0;border-right-style:solid}
+.ad-third .ad-name{font-size:9pt}
+.safe.witht-r{right:58mm}.safe.witht-l{left:58mm}
+.page:has(.ad-third.ad-r) .folio{right:58mm}.page:has(.ad-third.ad-l) .folio{left:58mm}
+
+/* 5-product review */
+.rv5{gap:2mm}
+.rv-top{display:flex;justify-content:space-between;align-items:flex-start}
+.rv5 .wks{display:grid;grid-template-rows:repeat(5,minmax(0,1fr));gap:0;flex:1;min-height:0}
+.rv5 .wk{grid-template-columns:22mm 1fr;gap:3.5mm;align-items:center;padding:1.6mm 0;border-bottom:.25mm solid #ddd3bd}
+.rv5 .wk:last-child{border-bottom:0}
+.rv5 .wk-img{height:100%;min-height:0;max-height:32mm;background:#0b0b0f}
+.rv5 .wk h3{font-size:9.6pt}
+.wk-cat{font:700 4.9pt 'Raleway';letter-spacing:.14em;text-transform:uppercase;color:var(--gold2);margin:.4mm 0 .6mm}
+.rv5 .wk p{font-size:5.6pt}
+.ss-top{justify-content:space-between}
+.ss-spons{width:21.6mm}.ss-spons img{width:21.6mm}
+.ss-spons span{font-size:3.4pt;text-align:right}
+.ad-third .sample-tag{max-width:44mm;font-size:4.2pt}
+
+/* contents + masthead (Record style) */
+.cm{display:grid!important;grid-template-columns:1fr 39mm;gap:4mm}
+.cm-main{display:flex;flex-direction:column;gap:2.4mm;min-height:0}
+.cm-top{display:flex;justify-content:space-between;align-items:flex-end}
+.cm-issue{text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+.cm-issue b{font:700 20pt/0.9 'Playfair Display';color:var(--navy)}.cm-issue span{font:800 4.8pt 'Raleway';letter-spacing:.14em;color:var(--navy)}
+.cm-intro{font:italic 400 7pt/1.35 'Playfair Display';color:var(--navy);border-left:.8mm solid var(--gold);padding-left:2mm}
+.cm-intro span{display:block;font:800 4.8pt 'Raleway';font-style:normal;letter-spacing:.16em;text-transform:uppercase;color:var(--gold2);margin-bottom:.4mm}
+.cm-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6mm;height:30mm;flex:none}
+.cm-tile{position:relative;background:#111}
+.cm-img{position:absolute!important;inset:0}
+.cm-tile div{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.85));color:#fff;font:700 5.4pt 'Raleway';padding:3mm 1.4mm 1.2mm}
+.cm-tile div span{display:block;font:700 11pt/1 'Playfair Display';color:var(--gold)}
+.cm-list{display:flex;flex-direction:column;gap:.2mm;flex:1;min-height:0}
+.cm-row{display:flex;gap:2.4mm;align-items:baseline;border-bottom:.2mm solid #ddd3bd;padding:1mm 0}
+.cm-n{font:700 11pt/1 'Playfair Display';color:var(--gold2);min-width:7mm}
+.cm-row b{display:block;font:700 7.2pt/1.2 'Playfair Display';color:var(--navy)}
+.cm-row span{font:400 5.4pt 'Raleway';color:var(--grey)}
+.cm-mast{background:var(--navy);color:#fff;margin:-6mm -6mm -8mm 0;padding:6mm 3.4mm 4mm;display:flex;flex-direction:column;gap:1.6mm}
+.cm-logo{width:28mm}.cm-mag{font:700 5pt 'Raleway';letter-spacing:.5em;color:#fff;margin-top:-1mm}
+.cm-mast dl{display:flex;flex-direction:column;gap:.3mm;margin-top:1.4mm}
+.cm-mast dt{font:800 4.4pt 'Raleway';letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-top:.9mm}
+.cm-mast dd{font:400 5.2pt/1.35 'Raleway';color:#e9ecf5;word-break:break-word}
+.cm-addr{font:400 5.2pt/1.4 'Raleway';border-top:.2mm solid rgba(255,255,255,.3);padding-top:1.4mm;margin-top:.6mm}
+.cm-addr b{color:var(--gold)}
+.cm-legal{font:400 3.9pt/1.4 'Raleway';color:#b8bfd6;margin-top:auto}
+.cm-rsa{font:700 4.3pt/1.3 'Raleway';color:var(--gold)}
+.cm-mast{margin:0;padding:4mm 3mm 3mm;gap:1.1mm;overflow:hidden}
+.cm-mast dl{margin-top:.6mm}.cm-mast dt{margin-top:.6mm}
+.cm-tiles{flex:1 1 auto;height:auto;min-height:26mm;max-height:62mm}
+.cm-list{flex:none}
+.cm-row{padding:.75mm 0}
+.cm-row span{font-size:5.1pt}
+.cm-legal{font-size:3.7pt}
+.cm-list.dense{display:grid;grid-template-columns:1fr 1fr;column-gap:4mm;row-gap:0;align-content:start}
+.cm-list.dense .cm-row{padding:.9mm 0}
+.cm-list.dense .cm-row b{font-size:6.6pt}
+.cm-list.dense .cm-row span{font-size:4.8pt}
+.cm-win{flex:none;margin-top:2.4mm;background:var(--navy);color:#fff;padding:2.4mm 3mm 2mm;display:grid;grid-template-columns:17mm 1fr;column-gap:3mm;row-gap:1.4mm;align-items:center}
+.cw-head{grid-row:1/3;display:flex;flex-direction:column;align-items:center;border-right:.3mm solid var(--gold);padding-right:2.6mm}
+.cw-head b{font:400 24pt/0.9 'Bebas Neue';color:var(--gold);letter-spacing:.5pt}
+.cw-head span{font:600 4.6pt 'Raleway';letter-spacing:.8pt;text-transform:uppercase;color:#fff;white-space:nowrap}
+.cw-prizes{display:grid;grid-template-columns:repeat(3,1fr);gap:2.4mm}
+.cw-prizes div{display:flex;flex-direction:column;gap:.3mm}
+.cw-prizes i{font:400 8pt/1 'Bebas Neue';color:var(--gold);font-style:normal}
+.cw-prizes b{font:700 6.4pt/1.15 'Playfair Display';color:#fff}
+.cw-prizes span{font:400 4.6pt/1.3 'Raleway';color:#d8d3c4}
+.cw-enter{font:400 4.6pt/1.3 'Raleway';color:#d8d3c4}
+.cw-enter b{color:var(--gold);font-weight:700}
+.cm-tiles{max-height:46mm}
+.cm-win{margin-top:auto}
+.cm-list{margin-bottom:2.4mm}
+.cm-tiles{max-height:58mm}
+.cm-main.long .cm-tiles{max-height:46mm}
+.cm-main.long .cm-tiles{max-height:56mm}
+/* news page v2: 6 items in 2 cols, tall What's Hot, subscribe CTA, horizontal third ad */
+.ad-hthird{left:0;right:0;bottom:0;height:73mm}
+.ad-hthird::after{top:0;border-top-style:solid}
+.ad-hthird .ad-inner{flex-direction:column;padding:2mm 4mm}
+.ad-hthird .sample-tag{top:2mm;left:4mm}
+.safe.withthird{bottom:79mm}
+.folio.third{bottom:76mm}
+.nh2{display:grid;grid-template-columns:1fr 1fr 0.82fr;gap:4mm;flex:1;min-height:0}
+.nh2-news{grid-column:1/3;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,auto);grid-auto-flow:column;column-gap:4mm;row-gap:2.6mm;align-content:space-between}
+.nh2-i{border-top:.3mm solid var(--gold);padding-top:1.4mm}
+.nh2-i h3{font:700 8pt/1.15 'Playfair Display';color:var(--navy);margin-bottom:.6mm}
+.nh2-i p{font:400 5.9pt/1.42 'Raleway'}
+.nh2-hot{background:#E8601C;color:#fff;padding:3mm;display:flex;flex-direction:column;justify-content:space-between}
+.nh2-hot .hot-h{font-size:19pt;margin-bottom:1mm}
+.nh2-hot .hot-i{font-size:6.3pt}
+.nh2-sub{flex:none;display:flex;align-items:center;gap:3mm;background:var(--navy);color:#fff;padding:2.4mm 3mm}
+.nh2-sub b{display:block;font:700 9pt 'Playfair Display';color:var(--gold)}
+.nh2-sub span{display:block;font:400 5.6pt/1.4 'Raleway';margin-top:.4mm}
+.nh2-btn{flex:none;background:var(--gold);color:var(--navy);font:800 5.6pt 'Raleway';letter-spacing:.04em;padding:1.8mm 2.4mm;text-transform:uppercase;white-space:nowrap}
+.nh2-i h3{font-size:9.2pt;margin-bottom:.9mm}
+.nh2-i p{font-size:6.7pt;line-height:1.5}
+.nh2-news{row-gap:3mm}
+.nh2-btn{display:flex;flex-direction:column;align-items:center;font-size:7pt;padding:2mm 3mm}
+.nh2-btn small{font:600 5pt 'Raleway';text-transform:none;letter-spacing:0;margin-top:.4mm}
+.nh2-note{flex:none;margin-top:-2mm;text-align:right}
+.nh2-note{font:400 5pt 'Raleway';color:var(--grey);margin-top:-1.6mm}
+.ad-hquarter{left:0;right:0;bottom:0;height:55.5mm}
+.ad-hquarter::after{top:0;border-top-style:solid}
+.ad-hquarter .ad-inner{flex-direction:column;padding:2mm 4mm}
+.ad-hquarter .sample-tag{top:2mm;left:4mm}
+.safe.withquarter{bottom:61.5mm}
+.folio.quarter{bottom:58.5mm}
+.nh2-hot{position:relative;overflow:hidden;background:#E8601C}
+.nh2-hot>*{position:relative;z-index:2}
+.nh2-hot>.nh2-bg{position:absolute;inset:0;z-index:0}
+.nh2-bg img{width:100%;height:100%;object-fit:cover;object-position:50% 40%}
+.nh2-hot>.nh2-tint{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(232,96,28,.55) 0%,rgba(232,96,28,.82) 45%,rgba(200,70,18,.92) 100%)}
+.nh2-hot .hot-i{text-shadow:0 .2mm .6mm rgba(0,0,0,.35)}
+.nh2-hot>.nh2-tint{background:linear-gradient(180deg,rgba(232,96,28,.25) 0%,rgba(232,96,28,.6) 40%,rgba(205,72,18,.86) 100%)}
+.nh2-bg img{filter:saturate(1.15) contrast(1.05)}
+.nh2-i h3{font-size:10pt}
+.nh2-i p{font-size:7.2pt;line-height:1.5}
+/* section headings: gold, no ">" (24 Oct) */
+h1.sec,h1.sec.light{color:var(--gold)}
+h1.sec .gt{display:none}
+/* contents welcome + match overview club box (24 Oct) */
+.cm-intro{font-size:6.6pt;line-height:1.38}
+.cm-sig{display:block;margin-top:1mm;font:700 italic 7.4pt 'Playfair Display';color:var(--navy)}
+.cm-sig small{font:400 5pt 'Raleway';font-style:normal;color:var(--grey);margin-left:1.4mm}
+.tp-club{flex:1;min-height:0;display:grid;grid-template-columns:1.1fr 1fr;gap:4mm;background:var(--navy);color:#fff;padding:4mm;margin-top:1mm}
+.tp-club-l{display:flex;flex-direction:column;gap:1.6mm}
+.tp-club-l img{width:30mm;height:auto}
+.tp-club-l .big2{color:#fff}.tp-club-l .big2 i{color:var(--gold)}
+.tp-club-l p{font:400 6.2pt/1.45 'Raleway';color:#E6E1D3}
+.tp-join{margin-top:auto;font:700 6.4pt 'Raleway';color:var(--gold);border-top:.3mm solid var(--gold);padding-top:1.4mm}
+.tp-club .tiers{display:flex;flex-direction:column;gap:2mm;justify-content:center}
+.tp-club .tiers>div{display:flex;justify-content:space-between;align-items:center;background:#fff;color:var(--navy);padding:2.4mm 3mm}
+.tp-club .tiers b{font:700 7pt 'Playfair Display'}
+.tp-club .tiers span{font:800 6.6pt 'Raleway';color:var(--gold2)}
+.tp-club .tiers .small{font:400 5pt/1.4 'Raleway';color:#C9C4B6;margin-top:1mm}
+/* merged Art + Match page (32pp p18) */
+.am{gap:2.6mm}
+.am .body{font-size:7pt}
+.am-row{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.am .expect{font-size:6.4pt;gap:1mm}
+.am-steps{grid-template-columns:1fr;gap:2mm}
+.am-steps b{font-size:7pt;margin:.4mm 0}
+.am-steps p{font-size:6pt}
+.am .taste{min-height:0;padding:2.2mm 2mm}
+.am .taste .tl{font-size:17pt}
+.am .note{font-size:5.4pt}
+.am-pics{flex:1;min-height:0}.am-pics .ph-wrap{height:100%}
+/* Teams + Club page (16pp p10) */
+.tcl .tgrid.g12{gap:1.6mm}
+.tcl .tc-img{height:12mm}
+.tcl .tp-club{flex:1}
+/* Round 1 + Ladder page */
+.rl{gap:2.2mm}
+.rl .r1-head h1.big{font-size:19pt}
+.rl-top{display:grid;grid-template-columns:1fr 1.25fr;gap:4mm}
+.rl-intro{display:flex;flex-direction:column;gap:1.6mm}
+.rl-intro .r1-pic{height:24mm}
+.rl-intro .body{font-size:6.3pt;line-height:1.45}
+.rl .fx{padding:1.1mm 2mm;font-size:6pt}
+.rl-lad{display:grid;grid-template-columns:36mm 1fr;gap:3mm;align-items:center;border-top:.4mm solid var(--gold);padding-top:2mm}
+.rl-h2{font:700 15pt/1 'Playfair Display';color:var(--navy)}.rl-h2 i{color:var(--gold2);font-weight:400}
+.rl .flow>div:not(.arrow){padding:1.6mm}
+.rl .ladder td{padding:.95mm 1.4mm;font-size:6.1pt}
+.rl .ladder th{padding:1.2mm 1.4mm}
+.tcl .calmini{flex:none}
+.rl .ladder td{padding:1.5mm 1.4mm;font-size:6.4pt}
+.rl .fx{padding:1.6mm 2mm;font-size:6.3pt}
+.rl-intro .r1-pic{height:30mm}
+.tcl .tcard.sm .tc-img{height:8mm;min-height:8mm}
+.tcl .tcard{padding-bottom:1mm}
+.tcl .tcard b{font-size:7pt;padding-top:1mm}
+.tcl .body{font-size:6.6pt}
+.tcl{gap:2.2mm}
+.tcl .tp-club{padding:3mm;gap:3mm}
+.tcl .tp-club-l img{width:24mm}
+.tcl .tp-club-l p{font-size:5.8pt}
+.tcl .tp-club .tiers>div{padding:1.8mm 2.6mm}
+.tcl .tcard.sm .tc-img{height:11mm;min-height:11mm}
+/* Top 10 + Bar Lingo restyle (navy/cream) */
+.t10b{display:grid!important;grid-template-columns:44mm 1fr;gap:5mm}
+.t10b-left{background:var(--navy);margin:-2mm 0 -2mm -2mm;padding:4mm 3.4mm;display:flex;flex-direction:column;gap:2mm}
+.t10b-left .kicker{color:var(--gold)}
+.t10b-left h2{font:700 12.5pt/1.1 'Playfair Display';color:#fff}.t10b-left h2 i{color:var(--gold);font-weight:400}
+.t10b-left ol{list-style:none;display:flex;flex-direction:column;gap:1.7mm;margin-top:1mm}
+.t10b-left li{display:grid;grid-template-columns:6.5mm 1fr;color:#fff}
+.t10b-left li span{font:700 11pt/1 'Playfair Display';color:var(--gold);grid-row:span 2}
+.t10b-left li b{font:700 7pt 'Raleway'}.t10b-left li i{font:italic 400 5.9pt 'Playfair Display';color:#C9CFE0}
+.t10b-cap{margin-top:auto;font:700 5.6pt 'Raleway';letter-spacing:.12em;text-transform:uppercase;color:var(--gold);border-top:.3mm solid var(--gold);padding-top:1.4mm}
+.t10b-right{display:flex;flex-direction:column;gap:1.6mm;min-height:0}
+.t10b-h{font:700 15pt/1.05 'Playfair Display';color:var(--navy)}.t10b-h i{color:var(--gold2);font-weight:400}
+.gloss2{columns:2;column-gap:4mm}
+.gloss2 p{break-inside:avoid;font:400 5.8pt/1.38 'Raleway';color:#2b2d35;margin-bottom:1.1mm}
+.gloss2 b{font:700 6.6pt 'Playfair Display';color:var(--navy);margin-right:.8mm}
+.t10b-pics{flex:1;min-height:20mm;margin-top:1mm}
+.t10b-left{margin:0}
+.t10b-h{font-size:13.5pt;white-space:nowrap}
+.t10b-left ol{gap:2.8mm}
+.t10b-left li b{font-size:7.6pt}.t10b-left li i{font-size:6.3pt}
+/* Top 10 column v2: photo bg, big title, CTA under */
+.t10b-col{display:flex;flex-direction:column;gap:3mm;min-height:0}
+.t10b-col .t10b-left{flex:1;position:relative;overflow:hidden;padding:0;background:var(--navy)}
+.t10b-left>.t10b-bg{position:absolute;inset:0;z-index:0}
+.t10b-bg img{width:100%;height:100%;object-fit:cover;object-position:50% 50%}
+.t10b-tint{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(14,31,77,.55) 0%,rgba(14,31,77,.82) 35%,rgba(14,31,77,.93) 100%)}
+.t10b-in{position:relative;z-index:2;padding:9mm 3.4mm 4mm;display:flex;flex-direction:column;gap:1.6mm}
+.t10b-big{font:400 34pt/0.85 'Bebas Neue';color:#fff;letter-spacing:.02em}.t10b-big b{color:var(--gold);font-weight:400}
+.t10b-in h2{font:700 11.5pt/1.1 'Playfair Display';color:#fff}.t10b-in h2 i{color:var(--gold);font-weight:400}
+.t10b-in ol{list-style:none;display:flex;flex-direction:column;gap:2.4mm;margin-top:1.4mm}
+.t10b-in li{display:grid;grid-template-columns:6.5mm 1fr;color:#fff}
+.t10b-in li span{font:700 11pt/1 'Playfair Display';color:var(--gold);grid-row:span 2}
+.t10b-in li b{font:700 7.4pt 'Raleway'}.t10b-in li i{font:italic 400 6.2pt 'Playfair Display';color:#D5DAE8}
+.t10b-in .kicker{color:var(--gold)}
+.t10b-cta{flex:none;background:var(--gold);color:var(--navy);padding:3mm;display:flex;flex-direction:column;gap:.8mm}
+.t10b-cta span{font:800 5.4pt 'Raleway';letter-spacing:.16em;text-transform:uppercase}
+.t10b-cta b{font:700 9pt/1.1 'Playfair Display'}
+.t10b-cta p{font:500 6pt/1.35 'Raleway'}
+.t10b-btn{margin-top:1mm;background:var(--navy);color:#fff;font:700 5.4pt 'Raleway';padding:1.6mm 2mm;text-align:center}
+.t10b-tint{background:linear-gradient(180deg,rgba(14,31,77,.3) 0%,rgba(14,31,77,.62) 40%,rgba(14,31,77,.86) 100%)}.t10b-in li b,.t10b-in li i,.t10b-in h2{text-shadow:0 .2mm .8mm rgba(0,0,0,.5)}
+.t10b-sec{font-size:28pt;line-height:1;margin-top:.6mm}
+/* 32pp p6 house heading */
+.am-sec{font-size:20pt;line-height:1.05}
+/* Round 1 v2 (32pp p8) */
+.r2{gap:2.4mm}
+.r2-hero{position:relative;height:46mm;flex:none;overflow:hidden}
+.r2-hero>.r2-hero-img{position:absolute;inset:0}
+.r2-hero-img img{width:100%;height:100%;object-fit:cover;object-position:50% 35%}
+.r2-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(14,31,77,.92) 0%,rgba(14,31,77,.7) 45%,rgba(14,31,77,.05) 100%)}
+.r2-ht{position:absolute;left:4mm;bottom:4mm;color:#fff}
+.r2-ht .kicker{color:var(--gold)}
+.r2-ht h1{font:700 22pt/1 'Playfair Display';color:#fff;margin:.8mm 0}.r2-ht h1 i{color:var(--gold);font-weight:400}
+.r2-ht p{font:italic 400 7pt 'Playfair Display';color:#E6E1D3}
+.r2-date{position:absolute;right:0;top:4mm;background:var(--gold);padding:1.8mm 3mm;text-align:right}
+.r2-date b{display:block;font:400 12pt/1 'Bebas Neue';letter-spacing:.05em;color:var(--navy)}
+.r2-date span{font:700 5.4pt 'Raleway';color:var(--navy)}
+.r2-mid{display:grid;grid-template-columns:1.15fr 1fr;gap:4mm;flex:none}
+.r2-fx{display:grid;grid-template-columns:1fr 8mm 1fr;align-items:center;background:#fff;border:.25mm solid #e2d9c4;margin-bottom:1mm;padding:1.1mm 1.6mm;font:600 6pt 'Raleway';color:var(--navy)}
+.r2-fx span:last-child{text-align:right}
+.r2-fx i{display:inline-block;width:4.6mm;height:4.6mm;border-radius:50%;background:var(--navy);color:var(--gold);font:700 4.6pt/4.6mm 'Raleway';text-align:center;font-style:normal;margin:0 1.2mm}
+.r2-fx em{font:400 9pt/1 'Bebas Neue';color:#fff;background:var(--gold2);text-align:center;padding:.5mm 0}
+.r2-theme{background:var(--navy);color:#fff;padding:2.4mm;display:flex;flex-direction:column;gap:1.2mm}
+.r2-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1mm;height:17mm;border-top:1.2mm dashed #2b3f7a;border-bottom:1.2mm dashed #2b3f7a;padding:.8mm 0}
+.r2-s{height:100%}
+.r2-theme b{font:700 8pt 'Playfair Display';color:var(--gold)}
+.r2-theme p{font:400 5.8pt/1.4 'Raleway';color:#D5DAE8}
+.r2-tix{margin-top:auto;background:var(--gold);color:var(--navy);font:800 5.4pt 'Raleway';padding:1.4mm 2mm;text-align:center}
+.r2-lh{display:flex;justify-content:space-between;align-items:flex-end;border-top:.4mm solid var(--gold);padding-top:1.6mm}
+.r2-steps{display:flex;align-items:center;gap:1.2mm}
+.r2-steps span{background:var(--gold);color:var(--navy);font:700 5.4pt 'Raleway';padding:1.2mm 2mm}
+.r2-steps span.gd{background:var(--royal);color:#fff}
+.r2-steps em{font-style:normal;color:var(--navy);font-weight:700}
+.r2 .ladder td{padding:.85mm 1.4mm;font-size:6pt}
+.r2 .ladder th{padding:1.1mm 1.4mm}
+/* Art of Cocktail Mastery feature (32pp p6, Traveller style) */
+.af-shade{background:linear-gradient(90deg,rgba(8,14,40,.93) 0 58%,rgba(8,14,40,.3))}
+.af .af-logo{position:absolute;top:0;left:0;width:34mm}
+.af h1.huge{font-size:26pt;line-height:1.02;max-width:92mm}
+.af-box{max-width:86mm;gap:1.6mm;font-size:6.6pt}
+.af .lede{font:italic 400 9pt/1.3 'Playfair Display';color:#fff}
+.af-label{font:800 5.6pt 'Raleway';letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-top:1mm}
+.af-exp{list-style:none;display:flex;flex-direction:column;gap:1mm}
+.af-exp li{padding-left:4mm;position:relative;color:#E6E9F2}
+.af-exp li::before{content:'';position:absolute;left:0;top:1.5mm;width:2mm;height:.5mm;background:var(--gold)}
+.af-exp b{color:#fff}
+.af-team{margin-top:1.4mm;font-size:5.6pt;gap:.8mm}
+/* Art feature v2 */
+.af-shade2{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(8,14,40,.25) 0%,rgba(8,14,40,.75) 22%,rgba(8,14,40,.94) 40%,rgba(8,14,40,.97) 100%)}
+.page:has(.af-shade2) .folio{color:#E9E3D3}
+.af2{gap:2mm;color:#E6E9F2}
+.af2 .af-logo{width:30mm;align-self:flex-start;margin-bottom:6mm}
+.af2 h1.huge{font-size:24pt;line-height:1.02}
+.af2 h1 i{color:var(--gold);font-weight:400}
+.af2 .lede{font:italic 400 8.6pt/1.3 'Playfair Display';color:#fff;margin:1mm 0 .6mm}
+.af-intro{font:400 6.4pt/1.45 'Raleway';max-width:110mm}
+.af-cols{display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-top:1mm}
+.af2 .af-label{font:800 5.4pt 'Raleway';letter-spacing:.18em;text-transform:uppercase;color:var(--gold);border-bottom:.25mm solid rgba(239,180,14,.5);padding-bottom:.8mm;margin:1.2mm 0 1.4mm}
+.af2 .af-exp{font:400 6pt/1.4 'Raleway';gap:1.1mm}
+.af-steps{display:flex;flex-direction:column;gap:1.2mm}
+.af-steps>div{display:grid;grid-template-columns:6mm 1fr;gap:1.5mm;font:400 5.8pt/1.35 'Raleway'}
+.af-steps b{font:700 10pt/1 'Playfair Display';color:var(--gold)}
+.af-steps i{display:block;font:700 6.2pt 'Raleway';font-style:normal;color:#fff}
+.af-taste{display:grid;grid-template-columns:repeat(5,1fr);gap:1mm}
+.af-taste>div{background:rgba(255,255,255,.08);border-top:.6mm solid var(--gold);padding:1.2mm .8mm;text-align:center}
+.af-taste b{display:block;font:900 12pt/1 'Playfair Display';color:var(--gold)}
+.af-taste span{display:block;font:400 9pt/1.1 'Bebas Neue';color:#fff}
+.af-taste i{display:block;font:500 4.4pt/1.2 'Raleway';font-style:normal;color:#C9CFE0}
+.af-small{font:italic 400 5.4pt/1.4 'Raleway';color:#C9CFE0;margin-top:1.2mm}
+.af-season{display:grid;grid-template-columns:repeat(3,1fr);gap:1mm 3mm}
+.af-season>div{display:grid;grid-template-columns:7mm 1fr;font:400 5.4pt/1.3 'Raleway'}
+.af-season b{font:700 6.4pt 'Playfair Display';color:var(--gold);grid-row:span 2}
+.af-season span{color:#fff;font-weight:600}.af-season i{color:#C9CFE0}
+.af2 .af-team{margin-top:auto;font-size:5.4pt}
+.af2{justify-content:flex-end}
+.af2 .af-logo{position:absolute;top:0;left:0;margin:0}
+.af2 .af-team{margin-top:2mm}
+.af-shade2{background:linear-gradient(180deg,rgba(8,14,40,.15) 0%,rgba(8,14,40,.35) 18%,rgba(8,14,40,.88) 36%,rgba(8,14,40,.96) 50%,rgba(8,14,40,.97) 100%)}
+.bleedimg:has(+.af-shade2) img{object-position:50% 20%}
+/* p6 min 8pt */
+.af2 .lede{font-size:11pt}
+.af-intro{font-size:8pt;line-height:1.4}
+.af2 .af-label{font-size:8pt;letter-spacing:.12em}
+.af2 .af-exp{font-size:8pt;line-height:1.3;gap:1.2mm}
+.af-steps>div{font-size:8pt;line-height:1.3;grid-template-columns:7mm 1fr}
+.af-steps i{font-size:8pt}
+.af-steps b{font-size:12pt}
+.af-taste b{font-size:13pt}.af-taste span{font-size:11pt}.af-taste i{font-size:8pt;line-height:1.1}
+.af-taste>div{padding:1.4mm .4mm}
+.af-small{font-size:8pt}
+.af2 .af-team{font-size:8pt;gap:.6mm}
+.af2 h1.huge{font-size:26pt}
+.af2 .kicker{font-size:8pt}
+.af-cols{gap:4mm}
+.af-taste{grid-template-columns:repeat(5,minmax(0,1fr));gap:1.6mm}.af-taste>div{padding:1.6mm .6mm}
+/* 7.5pt pass fixes (32pp) */
+.x3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.x3 .tiers div{gap:1.5mm}
+.r2-hero{height:36mm}
+.cm-main.long .cm-tiles{max-height:30mm;min-height:24mm}
+.cm-main.long .cm-row{padding:.5mm 0}
+.x3 .join{overflow-wrap:anywhere;word-break:break-word}
+.cm-main.long .cm-tiles{max-height:24mm;min-height:20mm}
+.cm-main.long .cm-win{grid-template-columns:15mm 1fr;column-gap:2mm;padding:2mm 2.4mm}
+.cm-main.long .cw-head b{font-size:20pt}
+.cm-main.long .cw-head span{white-space:normal;text-align:center;line-height:1.1}
+.cm-main.long .cw-prizes span{display:none}
+.cm-main.long .cm-list{margin-bottom:1.6mm}
+.cm-mast,.x3 .col{overflow-wrap:anywhere}
+/* Shaken & Stirred v2 */
+.s2{gap:2.6mm}
+.s2-hero{position:relative;height:40mm;flex:none;overflow:hidden;margin:0 0 .5mm}
+.s2-hero>.s2-hero-img{position:absolute;inset:0}
+.s2-hero-img img{width:100%;height:100%;object-fit:cover;object-position:50% 40%}
+.s2-hshade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(14,31,77,.95) 0%,rgba(14,31,77,.75) 50%,rgba(14,31,77,.15) 100%)}
+.s2-ht{position:absolute;left:4mm;bottom:4mm;color:#fff}
+.s2-ht .kicker{color:var(--gold)}
+.s2-ht h1{font:700 26pt/1 'Playfair Display';color:#fff;margin:.8mm 0}.s2-ht h1 i{color:var(--gold);font-weight:400}
+.s2-ht p{font:italic 400 8pt 'Playfair Display';color:#E6E1D3}
+.s2-spons{position:absolute;right:3mm;top:3mm;width:24mm;display:flex;flex-direction:column;align-items:center;gap:.6mm;background:rgba(14,31,77,.85);padding:1.4mm}
+.s2-spons span{font:700 5pt 'Raleway';letter-spacing:.12em;text-transform:uppercase;color:#E6E1D3}
+.s2-spons img{width:20mm;display:block}
+.s2-spons em{font:800 4pt 'Raleway';font-style:normal;letter-spacing:.08em;color:var(--gold)}
+.s2-dyk{display:grid;grid-template-columns:30mm 1fr;gap:4mm;align-items:center;flex:none}
+.s2-dyk-ph,.s2-ph,.s2-trick-ph{border-radius:50%;overflow:hidden;border:.6mm solid var(--gold);aspect-ratio:1}
+.s2-img img,.s2-img{width:100%;height:100%;object-fit:cover}
+.s2-tag{display:inline-block;background:var(--gold);color:var(--navy);font:800 7.5pt 'Raleway';letter-spacing:.1em;text-transform:uppercase;padding:.8mm 2mm}
+.s2-tag.dark{background:var(--navy);color:var(--gold)}
+.s2-big{font:400 30pt/1 'Bebas Neue';color:var(--gold);letter-spacing:.02em;margin:1mm 0 .6mm}
+.s2-dyk p{font:400 8pt/1.4 'Raleway';color:#E6E9F2}
+.s2-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.4mm 4mm;flex:1;min-height:0;align-content:start}
+.s2-card{display:grid;grid-template-columns:17mm 1fr;gap:2.4mm;align-items:start;border-top:.3mm solid rgba(239,180,14,.45);padding-top:2mm}
+.s2-card h3{font:400 12pt/1 'Bebas Neue';letter-spacing:.04em;color:var(--gold);margin-bottom:.6mm}
+.s2-card p{font:400 7.5pt/1.38 'Raleway';color:#E6E9F2}
+.s2-trick{display:grid;grid-template-columns:20mm 1fr;gap:3mm;align-items:center;background:var(--gold);color:var(--navy);padding:2.4mm 3mm;flex:none}
+.s2-trick-ph{border-color:var(--navy)}
+.s2-trick p{font:500 7.5pt/1.38 'Raleway';margin-top:1mm}
+.s2-note{font:italic 400 7.5pt 'Raleway';color:#C9CFE0}
+.s2-hero{height:54mm}
+.s2-grid{align-content:space-evenly}
+.s2-card{grid-template-columns:21mm 1fr}
+.s2-spons{width:28mm}
+.s2-dyk{grid-template-columns:34mm 1fr}
+
+/* p12 polish */
+.t10b-btn{display:flex;flex-direction:column;gap:.3mm;padding:1.4mm 1.5mm}
+.t10b-btn small{font:600 7.5pt 'Raleway';color:#E6E1D3}
+.t10b-btn b{font:400 9.5pt/1 'Bebas Neue';letter-spacing:.03em;color:#fff;white-space:nowrap}
+.t10b-pics .ph-wrap{overflow:hidden}
+.t10b-pic{position:relative;overflow:hidden}
+.t10b-pic>.ph-wrap{position:absolute;inset:0;height:100%}
+.t10b-pic .pic{width:100%;height:100%;object-fit:cover}
+.t10b-pcap{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,rgba(14,31,77,.95),rgba(14,31,77,.6) 70%,transparent);color:#fff;font:400 7.5pt/1.25 'Raleway';padding:5mm 1.6mm 1.4mm}
+.t10b-pcap b{display:block;font:400 10pt/1 'Bebas Neue';letter-spacing:.04em;color:var(--gold)}
+
+/* News v3 (p4, Oct 2026) */
+.n3{gap:2.6mm}
+.n3-lead{position:relative;height:44mm;flex:none;overflow:hidden}
+.n3-lead>.n3-lead-img{position:absolute;inset:0}
+.n3-lead-img img{width:100%;height:100%;object-fit:cover;object-position:50% 35%}
+.n3-lead-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(14,31,77,.94) 0%,rgba(14,31,77,.75) 50%,rgba(14,31,77,.1) 100%)}
+.n3-lead-t{position:absolute;left:4mm;bottom:3.6mm;width:66%;color:#fff}
+.n3-tag,.r3-tag{display:inline-block;background:var(--gold);color:var(--navy);font:800 7.5pt 'Raleway';letter-spacing:.1em;text-transform:uppercase;padding:.7mm 2mm}
+.n3-lead-t h2{font:700 17pt/1.05 'Playfair Display';color:#fff;margin:1.4mm 0 1mm}
+.n3-lead-t p{font:400 7.5pt/1.45 'Raleway';color:#E6E1D3}
+.n3-stats{display:grid;grid-template-columns:repeat(4,1fr);flex:none;border-top:.4mm solid var(--gold);border-bottom:.4mm solid var(--gold)}
+.n3-stats div{padding:1.4mm 2mm;display:flex;align-items:center;gap:1.8mm}
+.n3-stats div+div{border-left:.25mm solid #e2d9c4}
+.n3-stats b{font:400 20pt/1 'Bebas Neue';color:var(--gold2)}
+.n3-stats span{font:700 7.5pt/1.2 'Raleway';color:var(--navy)}
+.n3-body{display:grid;grid-template-columns:2fr .82fr;gap:4mm;flex:1;min-height:0}
+.n3-news{display:grid;grid-template-columns:1fr 1fr;column-gap:4mm;row-gap:2.4mm;align-content:space-between}
+.n3-news .nh2-i h3{font-size:9.5pt}
+.n3-news .nh2-i p{font-size:7.5pt;line-height:1.45}
+.n3-hot .hot-h{font-size:18pt}
+.n3-hot .hot-i{font-size:7.5pt}
+
+/* Round 1 full (p8, Oct 2026) */
+.r3{gap:2.4mm}
+.r3-hero{position:relative;height:58mm;flex:none;overflow:hidden}
+.r3-hero>.r3-hero-img{position:absolute;inset:0}
+.r3-hero-img img{width:100%;height:100%;object-fit:cover;object-position:50% 30%}
+.r3-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(14,31,77,.94) 0%,rgba(14,31,77,.7) 50%,rgba(14,31,77,.05) 100%)}
+.r3-ht{position:absolute;left:4mm;bottom:4mm;color:#fff}
+.r3-ht .kicker{color:var(--gold)}
+.r3-ht h1{font:700 30pt/1 'Playfair Display';color:#fff;margin:1mm 0}.r3-ht h1 i{color:var(--gold);font-weight:400}
+.r3-ht p{font:italic 400 9pt 'Playfair Display';color:#E6E1D3}
+.r3-date span{font-size:7.5pt}
+.r3-date b{font-size:14pt}
+.r3-brief{flex:none;display:grid;grid-template-columns:auto 1fr;gap:3mm;align-items:start}
+.r3-brief p{font:400 8pt/1.45 'Raleway';color:var(--ink,#222)}
+.r3-pics{display:grid;grid-template-columns:repeat(3,1fr);gap:2.4mm;height:30mm;flex:none}
+.r3-mid{display:grid;grid-template-columns:1.1fr 1fr;gap:4mm;flex:1;min-height:0}
+.r3-lab{font:800 7.5pt 'Raleway';letter-spacing:.12em;text-transform:uppercase;color:var(--navy);margin-bottom:1.2mm;display:flex;gap:2mm;align-items:center}
+.r3-fix .r2-fx{font-size:7.5pt;padding:.9mm 1.4mm}
+.r3-fix .r2-fx i{width:5mm;height:5mm;font-size:7.5pt;line-height:5mm}
+.r3-night{background:var(--navy);color:#fff;padding:2.4mm;display:flex;flex-direction:column;justify-content:space-between}
+.r3-night .r3-lab{color:var(--gold)}
+.r3-n{display:grid;grid-template-columns:6mm 1fr;gap:2mm;align-items:start}
+.r3-n i{font:400 14pt/1 'Bebas Neue';color:var(--gold);font-style:normal}
+.r3-n b{display:block;font:700 8.5pt 'Playfair Display';color:#fff}
+.r3-n span{font:400 7.5pt/1.35 'Raleway';color:#D5DAE8}
+.r3-taste{flex:none;display:grid;grid-template-columns:auto repeat(5,1fr);gap:1.6mm;align-items:center;border-top:.4mm solid var(--gold);padding-top:1.6mm}
+.r3-taste .r3-lab{margin:0}
+.r3-t{background:#fff;border:.25mm solid #e2d9c4;display:grid;grid-template-columns:auto 1fr;column-gap:1.2mm;align-items:center;padding:.8mm 1.4mm}
+.r3-t b{grid-row:span 2;font:400 18pt/1 'Bebas Neue';color:var(--gold2)}
+.r3-t span{font:800 7.5pt 'Raleway';color:var(--navy)}
+.r3-t i{font:400 7.5pt 'Raleway';font-style:normal;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r3-tix{flex:none;display:flex;align-items:center;gap:3mm;background:var(--navy);color:#fff;padding:2.4mm 3mm}
+.r3-tix b{display:block;font:700 10pt 'Playfair Display';color:var(--gold)}
+.r3-tix span{display:block;font:400 7.5pt/1.4 'Raleway'}
+
+.n3{gap:2.2mm}
+.n3-lead{height:38mm}
+.n3-lead-t h2{font-size:15pt}
+.n3-stats b{font-size:17pt}
+.n3-stats div{padding:1mm 2mm}
+.n3-news{grid-template-rows:repeat(3,auto);grid-auto-flow:column;align-content:start;row-gap:2.2mm}
+.n3-news .nh2-i h3{font-size:9pt}
+.n3-hot{padding:2.6mm;justify-content:flex-start;gap:.4mm}
+.n3-hot .hot-h{font-size:16pt;margin-bottom:1.2mm}
+.r3{gap:2mm}
+.r3-hero{height:48mm}
+.r3-ht h1{font-size:27pt}
+.r3-pics{height:24mm}
+.r3-brief p{font-size:7.5pt}
+.r3-night{gap:1mm;justify-content:flex-start}
+.r3-n span{line-height:1.3;display:block}
+.r3-n b{font-size:8pt}
+.r3-fix{display:flex;flex-direction:column}
+.r3-fix .r2-fx{margin-bottom:.8mm}
+.r3-taste{grid-template-columns:repeat(5,1fr);row-gap:1mm}
+.r3-taste .r3-lab{grid-column:1/-1}
+.r3-t i{white-space:normal}
+
+.n3-lead{height:46mm}
+.n3-lead-t h2{font-size:17pt}
+.n3-news{align-content:space-between}
+.n3-hot{justify-content:space-between}
+.r3-pics{height:28mm}
+
+/* small horizontal strip ad (148 x 40 trim) */
+.ad-hstrips{left:0;right:0;bottom:0;height:43mm}
+.ad-hstrips::after{top:0;border-top-style:solid}
+.safe.withstrip-s{bottom:49mm}
+.folio.strip-s{bottom:46mm}
+.bbs3 .bb-img{flex:1;height:auto;min-height:24mm}
+.bbs3 .bb p{flex:none}
+.bbs3 .bbt{margin-top:1mm}
+.bbs3{grid-template-rows:1fr auto auto auto auto auto;row-gap:0}
+.bbs3 .bb{display:grid;grid-row:span 6;grid-template-rows:subgrid}
+.bbs3 .bb-img{min-height:0;height:100%}
+.bbs3 .bbt{align-self:start}
+
+.ad-hstrips{height:33mm}
+.safe.withstrip-s{bottom:39mm}
+.folio.strip-s{bottom:36mm}
+
+/* Bars in Brief: room for ~100-word reviews (p14, no ad) */
+.bb100 .bbs3 .bb-img{height:30mm;flex:none;min-height:0}
+.bb100 .bbs3{grid-template-rows:30mm auto auto 1fr auto auto}
+.bb100 .bb p{font-size:7.5pt;line-height:1.42}
+.bb100 .bbs3 .bb-img{height:25mm}
+.bb100 .bbs3{grid-template-rows:25mm auto auto 1fr auto auto}
+.bb100 .bb p{line-height:1.38}
+.bb100 .bbs3 .bb-img{height:21mm}
+.bb100 .bbs3{grid-template-rows:21mm auto auto 1fr auto auto}
+.r3-pics{height:24mm}
+.r3-night{gap:1.4mm}
+
+/* Contents hero (p3, Oct 2026) */
+.cm-hero{position:relative;height:50mm;flex:none;overflow:hidden;margin:-6mm 0 0 -6mm}
+.cm-hero>.cm-hero-img{position:absolute;inset:0}
+.cm-hero-img img{width:100%;height:100%;object-fit:cover;object-position:50% 35%}
+.cm-hero-shade{position:absolute;inset:0;background:linear-gradient(0deg,rgba(14,31,77,.97) 0%,rgba(14,31,77,.8) 45%,rgba(14,31,77,.2) 100%)}
+.cm-hero-t{position:absolute;left:6mm;right:4mm;bottom:3.4mm;color:#fff}
+.cm-hero-t h1{font:700 30pt/1 'Playfair Display';color:var(--gold);margin-bottom:1.6mm}
+.cm-hero .cm-intro{color:#fff;border-left-color:var(--gold);font-size:7.5pt}
+.cm-hero .cm-intro span{color:var(--gold)}
+.cm-hero .cm-sig{color:#fff}.cm-hero .cm-sig small{color:#D5DAE8}
+.cm-issue2{position:absolute;right:3mm;top:9mm;background:var(--gold);padding:1.6mm 2.4mm;align-items:center}
+.cm-issue2 b{font:400 20pt/.9 'Bebas Neue';color:var(--navy)}
+.cm-issue2 span{font:800 7.5pt 'Raleway';color:var(--navy)}
+.cm-n{font:400 15pt/1 'Bebas Neue';color:var(--gold2)}
+
+/* News + Review on navy (Oct 2026) */
+.n3nav .nh2-i{border-top-color:var(--gold)}
+.n3nav .nh2-i h3{color:var(--gold)}
+.n3nav .nh2-i p{color:#D5DAE8}
+.n3nav .n3-stats{border-color:var(--gold)}
+.n3nav .n3-stats div+div{border-left-color:rgba(255,255,255,.18)}
+.n3nav .n3-stats b{color:var(--gold)}
+.n3nav .n3-stats span{color:#fff}
+.n3nav .nh2-sub{background:var(--gold);color:var(--navy)}
+.n3nav .nh2-sub b{color:var(--navy)}
+.n3nav .nh2-btn{background:var(--navy);color:var(--gold)}
+.n3nav .nh2-btn small{color:#fff}
+.n3nav .nh2-note{color:#aab3cf}
+.n3nav .n3-lead{box-shadow:0 0 0 .3mm var(--gold)}
+.rvnav .wk{border-bottom-color:rgba(255,255,255,.16)}
+.rvnav .wk h3{color:#fff}
+.rvnav .wk-cat{color:var(--gold)}
+.rvnav .wk p{color:#D5DAE8}
+.rvnav .stars{color:var(--gold)}
+.rvnav .rv5 .wk-img,.rvnav .wk-img{box-shadow:0 0 0 .3mm var(--gold)}
+.cm-hero{height:44mm;margin:0}
+.cm-hero-shade{background:linear-gradient(0deg,rgba(14,31,77,.96) 0%,rgba(14,31,77,.7) 50%,rgba(14,31,77,.05) 100%)}
+.cm-hero-img img{filter:brightness(1.15)}
+.cm-hero-t{left:3mm}
+.cm-hero-t h1{font-size:28pt;margin-bottom:1mm}
+.cm-tiles{height:24mm}
+.cm .cm-list .cm-n,.cm .cm-list.dense .cm-n{font:400 15pt/1 'Bebas Neue';color:var(--gold2)}
+.cm-hero{height:40mm}
+.cm-issue2{top:3mm;padding:1.2mm 2mm}
+.cm-issue2 b{font-size:16pt}
+.cm .cm-list .cm-n,.cm .cm-list.dense .cm-n{font-size:12pt;min-width:6mm}
+.cm .cm-list.dense .cm-row{padding:.5mm 0;gap:2mm}
+.cm .cm-row span{display:block;line-height:1.2}
+.cm .cm-row b{line-height:1.1}
+.cm-main{gap:2mm}
+.cm-tiles{height:30mm}
+
+/* Team Focus (p16) */
+.tfp{gap:2.4mm}
+.tf2{display:grid;grid-template-columns:1fr 1fr;gap:3mm;flex:1;min-height:0}
+.tf{position:relative;display:flex;flex-direction:column;min-height:0;background:rgba(255,255,255,.04);border-top:.6mm solid var(--gold)}
+.tf-img{height:72mm;flex:none}
+.tf>.ph.imgtag{left:2mm;top:2mm}
+.tf-name{position:absolute;left:3mm;top:56mm;font:400 26pt/1 'Bebas Neue';letter-spacing:.02em;color:#fff;text-shadow:0 .5mm 2mm rgba(0,0,0,.8)}
+.tf-name span{display:block;font:800 7.5pt 'Raleway';letter-spacing:.16em;color:var(--gold);text-shadow:none}
+.tf-body{padding:3mm 2.6mm;display:flex;flex-direction:column;gap:2mm;flex:1}
+.tf-addr{text-align:center;font:700 7.5pt/1.4 'Raleway';color:var(--gold)}
+.tf-body p{font:400 7.5pt/1.5 'Raleway';color:#D5DAE8}
+.tf-t{margin-top:auto;font:400 7.5pt/1.5 'Raleway';color:#fff;border-top:.25mm solid rgba(255,255,255,.25);padding-top:1.4mm;width:100%}
+.tf-t td:first-child{color:var(--gold);font-weight:700;width:17mm;vertical-align:top}
+
+/* News v4 (p4) */
+.n4{gap:2mm}
+.n4-hero{height:36mm}
+.n4-hero .s2-ht h1{font-size:24pt}
+.n4-news{grid-template-rows:auto auto auto;align-content:start;row-gap:2mm}
+.n4-img{height:15mm;margin-bottom:1.2mm;border:.25mm solid var(--gold)}
+.n4-img img{width:100%;height:100%;object-fit:cover}
+.n4 .nh2-i h3{font-size:8.6pt}
+.n4 .nh2-i p{line-height:1.38}
+
+/* Bars in Brief: square photos at true ratio */
+.bb100 .bbs3 .bb-img{height:auto;aspect-ratio:1/1}
+.bb100 .bbs3{grid-template-rows:auto auto auto 1fr auto auto}
+.bb100 .bbt{line-height:1.18;padding-top:.6mm;margin-top:.6mm}
+.bb100 .bbt td{padding:0}
+.bb100 .bbs{padding:1.2mm 2mm;line-height:1.15}
+.bb100 .bbs div{margin:0}
+.bb100 .bb p{line-height:1.33;padding:.4mm 2mm}
+.bb100 .bb h3{padding-top:1.2mm}
+.bb100 .bbs{display:grid;grid-template-columns:repeat(3,1fr);column-gap:1mm}
+.bb100 .bbs>b,.bb100 .bbs>.rec{grid-column:1/-1}
+.bb100 .bbs>div:not(.rec){display:flex;flex-direction:column}
+.bb100 .bbs>div:not(.rec) span:first-child{font-size:7.5pt}
+.bb100 .bb p{line-height:1.28}
+.bb100 .bb p{padding-top:0;padding-bottom:0}
+
+/* Team focus, Record p7 layout (p16) */
+.trp{gap:2mm}
+.tr2{display:grid;grid-template-columns:1fr 1fr;gap:0;flex:1;min-height:0;margin:0 -6mm;border-top:.3mm solid var(--gold)}
+.tr-col{display:flex;flex-direction:column;min-height:0;padding:0 0 2mm}
+.tr-col+.tr-col{border-left:.6mm solid #fff;box-shadow:-.3mm 0 0 var(--gold)}
+.tr-ph{position:relative;height:80mm;flex:none;overflow:hidden}
+.tr-ph>.tr-img{position:absolute;inset:0}
+.tr-img img{width:100%;height:100%;object-fit:cover}
+.tr-ph .ph.imgtag{left:2mm;top:2mm}
+.tr-name{position:absolute;left:4mm;bottom:1mm;font:400 28pt/1 'Bebas Neue';color:#fff;text-shadow:0 .4mm 2mm rgba(0,0,0,.7)}
+.tr-addr{text-align:center;font:700 7.5pt/1.35 'Raleway';color:var(--navy);margin:2.6mm 0 2mm}
+.tr-col p{font:400 7.5pt/1.45 'Raleway';text-align:justify;hyphens:auto;margin:0 6mm 2mm;color:#222}
+.tr-t{margin:1mm 6mm 0;font:400 7.5pt/1.4 'Raleway';color:#222}
+.tr-t td:first-child{text-align:right;padding-right:2mm;width:16mm;vertical-align:top}
+.tr-qr{margin:auto 6mm 0 auto;width:20mm;height:20mm;border:.3mm dashed var(--royal);display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 7.5pt 'Raleway';color:var(--royal);text-align:center}
+.tr-col:first-child .tr-qr{margin-right:6mm}
+
+/* News: three equal columns */
+.n3-body.n3b3,.n4 .n3-body{grid-template-columns:1fr 1fr 1fr;column-gap:4mm}
+.n4 .n3-news{grid-column:span 2;column-gap:4mm}
+.n4 .n3-body>.n3-news{grid-column:1 / span 2}
+.n4 .n3-body>.n3-hot{grid-column:3}
+.tr2{margin:0}
+.tr-ph{height:74mm}
+.tr-col p{margin:0 3mm 2mm}
+.tr-t{margin:1mm 3mm 0}
+.tr-qr{margin:auto 3mm 0 auto;width:18mm;height:18mm}
+.tr-col:first-child .tr-qr{margin-right:3mm}
+.n4 .n3-body{grid-template-columns:repeat(3,minmax(0,1fr))}
+.n4 .n3-news{grid-template-columns:repeat(2,minmax(0,1fr))}
+.n4 .nh2-i p{overflow-wrap:anywhere}
+.n4-hero{height:30mm}
+.n4-img{height:13mm}
+.n4 .nh2-i p{overflow-wrap:normal}
+
+/* Team Focus v3 (p16) */
+.tg{gap:2.6mm}
+.tg-hero{height:34mm}
+.tg-badge{top:3mm}
+.tg-badge b{font-size:11pt}
+.tg2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4mm;flex:1;min-height:0}
+.tg-card{display:flex;flex-direction:column;min-height:0;background:rgba(255,255,255,.05);border-top:.8mm solid var(--gold)}
+.tg-ph{position:relative;height:50mm;flex:none;overflow:hidden}
+.tg-ph>.tg-img{position:absolute;inset:0}
+.tg-img img{width:100%;height:100%;object-fit:cover}
+.tg-shade{position:absolute;inset:0;background:linear-gradient(0deg,rgba(14,31,77,.95),rgba(14,31,77,0) 55%)}
+.tg-ph .ph.imgtag{left:2mm;top:2mm}
+.tg-name{position:absolute;left:3mm;bottom:2.4mm;font:400 24pt/1 'Bebas Neue';color:#fff;letter-spacing:.02em}
+.tg-name span{display:inline-block;background:var(--gold);color:var(--navy);font:800 7.5pt 'Raleway';letter-spacing:.14em;text-transform:uppercase;padding:.5mm 1.6mm;margin-bottom:1mm}
+.tg-name span{display:table}
+.tg-body{padding:2.4mm 3mm 3mm;display:flex;flex-direction:column;gap:2mm;flex:1;min-height:0}
+.tg-addr{font:700 7.5pt/1.35 'Raleway';color:var(--gold)}
+.tg-body p{font:400 7.5pt/1.45 'Raleway';color:#D5DAE8}
+.tg-facts{display:grid;grid-template-columns:1fr 1fr;gap:1.4mm;border-top:.25mm solid rgba(255,255,255,.2);padding-top:1.8mm}
+.tg-facts i{display:block;font:800 7.5pt 'Raleway';font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+.tg-facts b{font:600 7.5pt/1.3 'Raleway';color:#fff}
+.tg-sig{margin-top:auto;display:grid;grid-template-columns:1fr 17mm;gap:2mm;align-items:center;background:var(--gold);color:var(--navy);padding:2mm 2.4mm}
+.tg-sig i{display:block;font:800 7.5pt 'Raleway';font-style:normal;letter-spacing:.12em;text-transform:uppercase}
+.tg-sig b{display:block;font:700 10pt/1.1 'Playfair Display';margin:.4mm 0}
+.tg-sig span{font:400 7.5pt/1.3 'Raleway'}
+.tg-qr{height:17mm;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6mm;font:800 7.5pt 'Raleway';color:var(--navy)}
+.tg-foot{flex:none;border-top:.4mm solid var(--gold);padding-top:1.6mm;font:400 7.5pt 'Raleway';color:#D5DAE8}
+.tg-foot b{color:var(--gold)}
+.tg-ph{height:64mm}
+.tg-sig{grid-template-columns:1fr 20mm}
+.tg-sig span{display:block;line-height:1.3}
+.tg-qr{height:20mm}
+.tg-qr .ph{font-size:5pt;padding:.4mm .8mm}
+.tg-ph{height:42mm}
+.tg-body p{flex:1;min-height:0;overflow:hidden}
+.tg-hero{height:27mm}
+.tg-hero .s2-ht h1{font-size:22pt}
+.tg-ph{height:40mm}
+.tg-facts{gap:.8mm 2mm;padding-top:1.2mm}
+.tg-facts>div{display:flex;gap:1.4mm;align-items:baseline}
+.tg-facts i{display:inline}
+.tg-sig{padding:1.4mm 2mm}
+.tg-qr{height:16mm}
+.tg-sig{grid-template-columns:1fr 16mm}
+.tg-body{gap:1.6mm}
+.tg-body p{line-height:1.4}
+.tg-facts>div{display:block}
+.tg-facts i{display:block;line-height:1.2}
+.tg-facts b{line-height:1.2}
+
+/* Single bar review (p18, Venu) */
+.vr-photo{position:absolute;left:0;top:0;bottom:0;width:62mm;overflow:hidden;z-index:1}
+.vr-photo>.vr-img{position:absolute;inset:0}
+.vr-img img{width:100%;height:100%;object-fit:cover;object-position:60% 50%}
+.vr-pshade{position:absolute;inset:0;background:linear-gradient(0deg,rgba(14,31,77,.95) 0%,rgba(14,31,77,0) 35%),linear-gradient(270deg,rgba(14,31,77,.6),rgba(14,31,77,0) 30%)}
+.vr-stamp{position:absolute;left:9mm;top:12mm;background:var(--gold);color:var(--navy);font:400 13pt/1 'Bebas Neue';letter-spacing:.08em;padding:1.4mm 2.6mm;transform:rotate(-4deg)}
+.vr-cap{position:absolute;left:9mm;right:5mm;bottom:14mm;font:400 8pt/1.4 'Raleway';color:#fff}
+.vr-cap b{display:block;font:800 7.5pt 'Raleway';letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:.6mm}
+.vr{left:68mm!important;gap:1.8mm}
+.vr .kicker{color:var(--gold)}
+.vr-h{font:700 34pt/0.95 'Playfair Display';color:#fff}
+.vr-addr{font:700 7.5pt 'Raleway';color:var(--gold)}
+.vr .arch{align-self:flex-start}
+.vr-lede{font:italic 400 9pt/1.4 'Playfair Display';color:#fff;border-left:.8mm solid var(--gold);padding-left:2.4mm}
+.vr-body{flex:1;min-height:0;overflow:hidden}
+.vr-body p{font:400 7.5pt/1.45 'Raleway';color:#D5DAE8;margin-bottom:1.6mm;text-align:justify;hyphens:auto}
+.vr-facts{display:grid;grid-template-columns:1fr 1fr;gap:1.2mm 3mm;border-top:.3mm solid var(--gold);padding-top:1.6mm}
+.vr-facts i{display:block;font:800 7.5pt 'Raleway';font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+.vr-facts b{font:600 7.5pt/1.3 'Raleway';color:#fff}
+.vr-score{display:flex;flex-wrap:wrap;gap:1mm 3mm;align-items:center;background:#8FB3B0;color:#0b0b0f;padding:1.4mm 2.4mm;font:500 7.5pt 'Raleway'}
+.vr-score b{font-weight:800}
+.vr-note{font:italic 400 7.5pt 'Raleway';color:#9aa5c6}
+.vr-body p{font-size:7.8pt;line-height:1.5}
+.vr-body p{font-size:7.5pt;line-height:1.4;margin-bottom:1.2mm}
+.vr-h{font-size:30pt}
+.vr{gap:1.4mm}
+.vr-facts{gap:.6mm 3mm;padding-top:1.2mm}
+
+/* WWYLN spread (pp 30-31) */
+.wwp{gap:2.6mm}
+.ww-hero{height:44mm}
+.ww-hero .s2-ht h1{font-size:24pt}
+.w-spons{display:flex;flex-direction:column;align-items:center;gap:.8mm}
+.w-spons span{font:800 7.5pt 'Raleway';letter-spacing:.12em;text-transform:uppercase;color:#E6E1D3}
+.w-logo{width:30mm;height:14mm;background:#fff;border:.3mm dashed var(--gold);display:flex;align-items:center;justify-content:center;font:400 10pt 'Bebas Neue';letter-spacing:.06em;color:var(--navy)}
+.w-spons em{font:600 7.5pt 'Raleway';font-style:normal;color:var(--gold)}
+.w-spons.top{position:absolute;right:3mm;top:3mm;background:rgba(14,31,77,.85);padding:2mm 2.4mm}
+.ww-grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:4mm 3.4mm;flex:1;min-height:0;padding:1.5mm}
+.wpol{background:#fff;padding:1.4mm 1.4mm 5mm;position:relative;box-shadow:0 .8mm 2mm rgba(0,0,0,.45);display:flex;border-top:.6mm solid var(--gold)}
+.wpol-img{flex:1;min-height:0}
+.wpol-img img{width:100%;height:100%;object-fit:cover}
+.wpol span{position:absolute;left:1.8mm;bottom:.9mm;font:400 10pt/1 'Bebas Neue';color:var(--navy)}
+.ww-note{font:italic 400 7.5pt 'Raleway';color:#9aa5c6}
+.ww-big{display:grid;grid-template-columns:1fr 1fr;gap:4mm;height:62mm;flex:none;padding:1.5mm}
+.ww-grid3.sm{gap:3.4mm 3mm}
+.ww-cta{flex:none;display:grid;grid-template-columns:1fr auto;gap:3mm;align-items:center;background:var(--gold);color:var(--navy);padding:2.6mm 3mm}
+.ww-cta b{display:block;font:700 10pt/1.15 'Playfair Display';margin-bottom:.8mm}
+.ww-cta span{font:400 7.5pt/1.4 'Raleway'}
+.w-spons.cta span{color:var(--navy)}
+.w-spons.cta em{color:var(--navy)}
+.w-spons.cta .w-logo{border-color:var(--navy)}
+
+/* p6 season dates */
+.af-dates{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:1mm;flex:none}
+.af-dates div{background:rgba(255,255,255,.06);border-top:.4mm solid var(--gold);padding:.8mm 1mm}
+.af-dates b{display:block;font:400 11pt/1 'Bebas Neue';color:var(--gold)}
+.af-dates span{display:block;font:600 7.5pt/1.15 'Raleway';color:#fff}
+.af-dates i{display:block;font:400 7.5pt/1.15 'Raleway';font-style:normal;color:#D5DAE8}
+.wpol{min-width:0;min-height:0}
+.wpol-img{position:relative;min-width:0}
+.wpol-img img{position:absolute;inset:0}
+.ww-big .wpol{height:100%}
+.af-dates span{white-space:nowrap}
+.w-spons.top{top:2.4mm;right:2.4mm;padding:1.4mm 2mm;gap:.6mm}
+.w-spons.top .w-logo{width:24mm;height:10mm;font-size:9pt}
+.wwp .s2-ht{right:40mm}
+.ww-hero .s2-ht h1{font-size:21pt;white-space:nowrap}.wwp .s2-ht{right:auto}
+
+/* History of the Martini (p26) */
+.mh{gap:2.4mm}
+.mh-hero{height:42mm}
+.mh-hero .s2-hero-img img{object-position:60% 40%}
+.mh-body{column-count:2;column-gap:5mm;flex:1;min-height:0;overflow:hidden}
+.mh-body p{font:400 7.5pt/1.42 'Raleway';color:#D5DAE8;margin-bottom:1.4mm;text-align:justify;hyphens:auto}
+.mh-body p:first-child::first-letter{font:700 22pt/0.9 'Playfair Display';color:var(--gold);float:left;margin:.6mm 1.4mm 0 0}
+.mh-quote{flex:none;font:italic 400 10pt/1.35 'Playfair Display';color:#fff;border-left:.8mm solid var(--gold);padding-left:3mm}
+.mh-quote i{display:block;font:800 7.5pt 'Raleway';font-style:normal;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-top:.6mm}
+.mh-recipes{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:3mm}
+.mh-recipes div{background:var(--gold);color:var(--navy);padding:2mm 2.6mm;display:flex;flex-direction:column;gap:.3mm}
+.mh-recipes b{font:700 10pt 'Playfair Display';margin-bottom:.6mm}
+.mh-recipes span{font:500 7.5pt/1.35 'Raleway'}
+.mh-hero .s2-hero-img img{object-position:70% 20%}
+.mh-hero .s2-hshade{background:linear-gradient(90deg,rgba(14,31,77,.92) 0%,rgba(14,31,77,.55) 45%,rgba(14,31,77,0) 75%)}
+.mh-hero{height:50mm}
+.mh-body p{text-align:left;hyphens:none}
+.mh-body p:first-child::first-letter{font-size:26pt;line-height:.8;margin:.8mm 1mm 0 0}
+
+/* cream ("lite") variants of News, Review, Venu, Martini — Oct 2026 rhythm */
+.lite .nh2-i{border-top-color:var(--gold)}
+.lite .nh2-i h3{color:var(--navy)}
+.lite .nh2-i p{color:#333}
+.lite .n3-stats b{color:var(--gold2)}
+.lite .n3-stats span{color:var(--navy)}
+.lite .n3-stats div+div{border-left-color:#e2d9c4}
+.lite .nh2-sub{background:var(--navy);color:#fff}
+.lite .nh2-sub b{color:var(--gold)}
+.lite .nh2-btn{background:var(--gold);color:var(--navy)}
+.lite .nh2-btn small{color:var(--navy)}
+.lite .nh2-note{color:var(--grey)}
+.rv5.lite .wk h3{color:var(--navy)}
+.rv5.lite .wk p{color:#333}
+.rv5.lite .wk{border-bottom-color:#ddd3bd}
+.vr.lite .kicker{color:var(--gold2)}
+.vr.lite .vr-h{color:var(--navy)}
+.vr.lite .vr-addr{color:var(--gold2)}
+.vr.lite .vr-lede{color:var(--navy)}
+.vr.lite .vr-body p{color:#333}
+.vr.lite .vr-facts b{color:var(--navy)}
+.vr.lite .vr-facts i{color:var(--gold2)}
+.vr.lite .vr-note,.mh.lite .vr-note{color:var(--grey)}
+.vr-photo{z-index:3}
+.mh.lite .mh-body p{color:#333}
+.mh.lite .mh-quote{color:var(--navy)}
+.mh.lite .mh-quote i{color:var(--gold2)}
+.mh.lite .mh-recipes div{background:var(--navy);color:#fff}
+.mh.lite .mh-recipes b{color:var(--gold)}
+.page:has(.vr-photo) .folio{color:#fff;z-index:5;position:absolute}
+
+/* Mixology v2 (p24) */
+.mx{gap:2.4mm}
+.mx-hero{height:44mm}
+.mx-hero .s2-hero-img img{object-position:50% 30%}
+.mx-hero .s2-ht h1 i{color:#F06BA8}
+.mx-barman{position:absolute;right:3mm;top:3mm;background:var(--gold);color:var(--navy);padding:1.6mm 2.4mm;text-align:right}
+.mx-barman b{display:block;font:800 7.5pt 'Raleway';letter-spacing:.12em;text-transform:uppercase}
+.mx-barman span{display:block;font:700 10pt 'Playfair Display'}
+.mx-barman em{font:500 7.5pt 'Raleway';font-style:normal}
+.mx-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:3mm;flex:1;min-height:0}
+.mx-card{display:grid;grid-template-columns:24mm 1fr;background:#fff;border:.25mm solid #e2d9c4;border-top:.8mm solid #E0157A;min-height:0;overflow:hidden}
+.mx-ph{position:relative;min-height:0}
+.mx-ph>.mx-img{position:absolute;inset:0}
+.mx-img img{width:100%;height:100%;object-fit:cover}
+.mx-ph i{position:absolute;left:1.4mm;top:1.4mm;background:var(--navy);color:var(--gold);font:400 11pt/1 'Bebas Neue';font-style:normal;padding:.6mm 1.2mm}
+.mx-b{padding:2mm 2.4mm;display:flex;flex-direction:column;gap:.4mm}
+.mx-b h3{font:700 10pt/1.1 'Playfair Display';color:var(--navy);margin-bottom:.8mm}
+.mx-b span{font:600 7.5pt/1.35 'Raleway';color:#333;padding-left:2mm;position:relative}
+.mx-b span::before{content:'';position:absolute;left:0;top:1.4mm;width:.9mm;height:.9mm;background:#E0157A;border-radius:50%}
+.mx-b p{font:italic 400 7.5pt/1.35 'Raleway';color:#555;margin-top:auto;border-top:.2mm solid #e2d9c4;padding-top:.8mm}
+.mx-brand{flex:none;display:grid;grid-template-columns:14mm 1fr;gap:3mm;align-items:center;background:var(--navy);color:#fff;padding:2mm 3mm;position:relative}
+.mx-bottle{height:22mm;background:#fff}
+.mx-bottle img{width:100%;height:100%;object-fit:contain}
+.mx-brand b{display:block;font:700 10pt 'Playfair Display';color:#F06BA8;margin-bottom:.6mm}
+.mx-brand p{font:400 7.5pt/1.4 'Raleway';color:#D5DAE8}
+.mx-brand .sample-chip{position:absolute;right:2mm;top:-2.4mm;background:var(--gold);color:var(--navy);font:800 7.5pt 'Raleway';letter-spacing:.08em;padding:.4mm 1.4mm}
+.mx-hero .s2-hshade{background:linear-gradient(90deg,rgba(14,31,77,.92) 0%,rgba(14,31,77,.6) 45%,rgba(14,31,77,0) 80%)}.mx-hero .s2-hero-img img{object-position:50% 25%}
+.mx-hero .s2-hero-img img{object-position:50% 8%}.mx-hero .s2-hshade{background:linear-gradient(90deg,rgba(14,31,77,.92) 0%,rgba(14,31,77,.55) 40%,rgba(14,31,77,0) 65%)}.mx-barman{top:auto;bottom:3mm}
+.mx-hero .s2-hero-img img{object-position:50% 0%}
+
+/* Championship spread pp 28-29 */
+.cs{gap:2.4mm}
+.cs-hero{height:40mm}
+.cs-hero .s2-ht h1{font-size:21pt}
+.cs-intro{font:italic 400 9pt/1.4 'Playfair Display';color:var(--navy);border-left:.8mm solid var(--gold);padding-left:2.4mm;flex:none}
+.cs-list{display:flex;flex-direction:column;flex:1;min-height:0;justify-content:space-between}
+.cs-r{display:grid;grid-template-columns:13mm 1fr;gap:2.4mm;align-items:center;border-bottom:.25mm solid #e2d9c4;padding:.6mm 0}
+.cs-r b{font:400 18pt/1 'Bebas Neue';color:var(--gold2)}
+.cs-r span{display:block;font:800 7.5pt 'Raleway';letter-spacing:.06em;text-transform:uppercase;color:var(--navy)}
+.cs-r i{font:700 10pt/1.15 'Playfair Display';color:var(--navy);font-style:normal}
+.cs-r em{display:block;font:italic 400 7.5pt 'Raleway';color:#555}
+.cs-r.on{background:var(--navy);padding:1mm 2mm;border:0}
+.cs-r.on b{color:var(--gold)}.cs-r.on span{color:var(--gold)}.cs-r.on i{color:#fff}.cs-r.on em{color:#D5DAE8}
+.cs-r.gf{background:var(--gold);padding:1mm 2mm;border:0}
+.cs-r.gf b{color:var(--navy)}
+.cs-h{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:.4mm solid var(--gold);padding-bottom:1mm;flex:none}
+.cs-h h2{font:700 22pt/1 'Playfair Display';color:var(--gold2)}
+.cs-h .kicker{color:var(--gold2)}
+.cs-soon{background:var(--navy);color:var(--gold);font:800 7.5pt 'Raleway';padding:1.2mm 2mm}
+.ct-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2.4mm;flex:none}
+.ct-c{background:#fff;border:.25mm solid #e2d9c4;border-top:.8mm solid var(--gold);padding:2mm;display:flex;flex-direction:column;gap:.3mm}
+.ct-c b{font:700 9pt/1.15 'Playfair Display';color:var(--navy)}
+.ct-c strong{font:400 22pt/1 'Bebas Neue';color:var(--gold2)}
+.ct-c span{font:700 7.5pt 'Raleway';color:var(--navy)}
+.ct-c p{font:400 7.5pt/1.35 'Raleway';color:#444;margin-top:.6mm}
+.cs-pc{flex:none;display:grid;grid-template-columns:34mm 1fr;gap:3mm;align-items:center;background:var(--navy);padding:2.4mm 3mm}
+.cs-pc-l span{display:block;font:800 7.5pt 'Raleway';letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.cs-pc-l b{font:700 11pt/1.1 'Playfair Display';color:#fff}
+.cs-pc p{font:400 7.5pt/1.45 'Raleway';color:#D5DAE8}
+.w-spons.mini{flex-direction:row;gap:1.6mm;align-items:center}
+.w-spons.mini span{color:var(--navy)}
+.w-spons.mini em{display:none}
+.w-spons.mini .w-logo{width:22mm;height:8mm;font-size:8pt}
+.cc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2.4mm;flex:1;min-height:0}
+.cc-t{background:#fff;border:.25mm solid #e2d9c4;padding:2mm;display:flex;flex-direction:column;gap:.5mm}
+.cc-t b{font:700 9pt/1.15 'Playfair Display';color:var(--navy)}
+.cc-t strong{font:400 20pt/1 'Bebas Neue';color:var(--gold2);margin-bottom:.6mm}
+.cc-t strong small{font:600 7.5pt 'Raleway';color:#555}
+.cc-t span{font:500 7.5pt/1.3 'Raleway';color:#333;padding-left:2.2mm;position:relative}
+.cc-t span::before{content:'';position:absolute;left:0;top:1.3mm;width:1mm;height:1mm;background:var(--gold);border-radius:50%}
+.cc-t.top{background:var(--navy);border-color:var(--navy)}
+.cc-t.top b{color:#fff}.cc-t.top strong{color:var(--gold)}.cc-t.top strong small{color:#D5DAE8}.cc-t.top span{color:#D5DAE8}
+.cs-cta{flex:none;font:400 7.5pt 'Raleway';color:var(--navy);border-top:.25mm solid #e2d9c4;padding-top:1.2mm}
+.cs-cta b{color:var(--gold2)}
+.cs-r{flex:1}
+.cc-grid{flex:none}
+.cc-every{flex:none;display:flex;flex-wrap:wrap;gap:1mm 3mm;align-items:center;background:var(--gold);color:var(--navy);padding:1.6mm 2.4mm}
+.cc-every b{font:800 7.5pt 'Raleway';letter-spacing:.1em;text-transform:uppercase}
+.cc-every span{font:600 7.5pt 'Raleway'}
+.cc-every span::before{content:'· '}
+.cc-photo{position:relative;flex:1;min-height:20mm;overflow:hidden}
+.cc-photo>.cc-img{position:absolute;inset:0}
+.cc-img img{width:100%;height:100%;object-fit:cover}
+.cc-shade{position:absolute;inset:0;background:linear-gradient(0deg,rgba(14,31,77,.9),rgba(14,31,77,0) 60%)}
+.cc-photo p{position:absolute;left:3mm;bottom:2mm;font:italic 400 10pt 'Playfair Display';color:#fff}
+.ct-c.club{background:var(--navy);border-color:var(--navy)}.ct-c.club b{color:#fff}.ct-c.club strong{color:var(--gold)}.ct-c.club span{color:var(--gold)}.ct-c.club p{color:#D5DAE8}
+.cs-tiles{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,minmax(0,1fr));gap:2mm;flex:1;min-height:0}
+.cs-t{position:relative;overflow:hidden;border-top:.8mm solid var(--gold)}
+.cs-t>.cs-timg{position:absolute;inset:0}
+.cs-timg img{width:100%;height:100%;object-fit:cover}
+.cs-tsh{position:absolute;inset:0;background:linear-gradient(90deg,rgba(14,31,77,.92) 0%,rgba(14,31,77,.55) 60%,rgba(14,31,77,.15) 100%)}
+.cs-t b{position:absolute;left:2.4mm;top:1.6mm;font:400 20pt/1 'Bebas Neue';color:var(--gold)}
+.cs-tt{position:absolute;left:2.4mm;right:2mm;bottom:1.8mm}
+.cs-tt span{display:block;font:800 7.5pt 'Raleway';letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.cs-tt i{font:700 11pt/1.1 'Playfair Display';color:#fff;font-style:normal}
+.cs-t.on{border-top-color:#fff}
+.cs-t.on::after{content:'THIS ISSUE';position:absolute;right:2mm;top:2mm;background:var(--gold);color:var(--navy);font:800 7.5pt 'Raleway';letter-spacing:.08em;padding:.4mm 1.2mm}
+.cs-gf{flex:none;display:grid;grid-template-columns:13mm 1fr;gap:2.4mm;align-items:center;background:var(--gold);padding:1.6mm 2.4mm}
+.cs-gf b{font:400 20pt/1 'Bebas Neue';color:var(--navy)}
+.cs-gf span{display:block;font:800 7.5pt 'Raleway';letter-spacing:.06em;text-transform:uppercase;color:var(--navy)}
+.cs-gf i{font:700 11pt/1.1 'Playfair Display';color:var(--navy);font-style:normal}
+.cs-gf em{display:block;font:italic 400 7.5pt 'Raleway';color:var(--navy)}
+.cc-grid{flex:1;min-height:0}
+.cc-t{min-height:0}
+.cc-qr{margin-top:auto;display:flex;align-items:center;gap:1.6mm;padding-top:1.4mm;border-top:.25mm solid #e2d9c4}
+.cc-qr div{width:14mm;height:14mm;flex:none;border:.3mm dashed var(--navy);background:#fff;display:flex;align-items:center;justify-content:center;font:800 7.5pt 'Raleway';color:var(--navy)}
+.cc-qr em{font:700 7.5pt/1.2 'Raleway';font-style:normal;color:var(--navy)}
+.cc-t.top .cc-qr{border-top-color:rgba(255,255,255,.2)}
+.cc-t.top .cc-qr em{color:var(--gold)}
+.cc-t.top .cc-qr div{border-color:var(--gold)}
+.cc-photo{flex:none;height:22mm;min-height:0}
+.cc-photo{height:30mm}
+/* Spirit Explained spread pp22-23 */
+.cx{gap:2.6mm}
+.cx-hero{height:62mm}
+.cx-hero .s2-hero-img img{object-position:50% 50%}
+.cx-shade{background:linear-gradient(0deg,rgba(15,42,25,.95) 0%,rgba(15,42,25,.55) 45%,rgba(15,42,25,0) 80%)}
+.cx-hero .s2-ht h1{font-size:30pt}
+.cx-hero .s2-ht h1 i{color:#B9D77A}
+.cx-lede{font:italic 400 10pt/1.4 'Playfair Display';color:#E8F2D2;flex:none}
+.cx-cols{columns:2;column-gap:5mm;flex:1;min-height:0}
+.cx-cols p{font:400 7.8pt/1.5 'Raleway';color:#F0F4E8;break-inside:avoid-column}
+.cx-cols p+p{margin-top:2mm}
+.cx-ff{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:rgba(255,255,255,.08);border-top:.8mm solid #B9D77A}
+.cx-ffh{grid-column:1/-1;font:800 7.5pt 'Raleway';letter-spacing:.14em;text-transform:uppercase;color:#B9D77A;padding:1.6mm 2.2mm 0}
+.cx-ff div:not(.cx-ffh){padding:1.4mm 2.2mm 2mm}
+.cx-ff div+div:not(:nth-child(2)){border-left:.25mm solid rgba(255,255,255,.15)}
+.cx-ff i{display:block;font:700 7.5pt 'Raleway';font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.cx-ff b{display:block;font:700 8pt/1.25 'Playfair Display';color:#fff;margin-top:.6mm}
+.cx2{gap:2.6mm}
+.cx2-h h2{font:700 22pt/1.05 'Playfair Display';color:var(--navy)}.cx2-h h2 i{color:#2f7a43;font-weight:400}
+.cx2-h .kicker{color:#2f7a43}
+.cx2-h{border-bottom:.3mm solid #2f7a43;padding-bottom:1mm;flex:none}
+.cx2-h.small{border-bottom:none;padding-bottom:0}
+.cx-st{display:grid;grid-template-columns:1fr 1fr;gap:3mm;flex:none}
+.cx-s{background:#fff;border:.25mm solid #e2d9c4;border-top:.8mm solid #2f7a43}
+.cx-simg{height:26mm}
+.cx-simg img{width:100%;height:100%;object-fit:cover}
+.cx-sb{padding:1.8mm 2.2mm 2.2mm}
+.cx-sb b{display:block;font:700 10pt 'Playfair Display';color:var(--navy)}
+.cx-sb em{display:block;font:700 7.5pt 'Raleway';font-style:normal;color:#2f7a43;margin:.4mm 0 .8mm}
+.cx-sb p{font:400 7.8pt/1.4 'Raleway';color:#333}
+.cx-t{width:100%;border-collapse:collapse;flex:none}
+.cx-t th,.cx-t td{font:400 7.8pt/1.3 'Raleway';color:#333;padding:1.1mm 1.6mm;border-bottom:.25mm solid #e2d9c4;text-align:left}
+.cx-t th{font-weight:700;color:var(--navy);width:22%}
+.cx-t td.h{font:700 7.5pt 'Raleway';letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#2f7a43}
+.cx-t tr:first-child th{background:#2f7a43}
+.cx-rs{display:flex;flex-direction:column;gap:2mm;flex:1;min-height:0}
+.cx-r{display:grid;grid-template-columns:24mm 1fr;background:#fff;border:.25mm solid #e2d9c4;border-left:.8mm solid var(--gold);flex:1;min-height:0;overflow:hidden}
+.cx-r>.cx-rimg{position:relative;min-height:0}
+.cx-rimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cx-rb{padding:1.4mm 2.2mm;display:flex;flex-direction:column;justify-content:center}
+.cx-rb b{font:700 9.5pt 'Playfair Display';color:var(--navy);margin-bottom:.4mm}
+.cx-rb span{font:600 7.5pt/1.3 'Raleway';color:#2f7a43}
+.cx-rb p{font:400 7.6pt/1.35 'Raleway';color:#333;margin-top:.6mm}
+.cx-note{font:400 7.5pt 'Raleway';color:var(--grey);flex:none}
+.cx-hero{height:72mm}
+.cx-cols{flex:none}
+.cx-way{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto 1fr;gap:0 3mm;align-content:start}
+.cx-wh{grid-column:1/-1;font:800 7.5pt 'Raleway';letter-spacing:.14em;text-transform:uppercase;color:#B9D77A;border-bottom:.25mm solid rgba(185,215,122,.5);padding-bottom:1mm;margin-bottom:1.6mm}
+.cx-way i{display:block;font:400 18pt/1 'Bebas Neue';font-style:normal;color:var(--gold)}
+.cx-way b{display:block;font:700 9.5pt 'Playfair Display';color:#fff;margin:.6mm 0 .4mm}
+.cx-way span{font:400 7.6pt/1.4 'Raleway';color:#E8F2D2}
+.cx-way span{display:block}
+/* Cachaça spread v2 (DrinkHQ look) */
+.sp-chip{position:absolute;right:3mm;bottom:3mm;display:flex;align-items:center;gap:1.6mm;background:rgba(14,31,77,.8);padding:1mm 1.6mm}
+.sp-chip span{font:700 7.5pt 'Raleway';letter-spacing:.08em;text-transform:uppercase;color:#E6E1D3}
+.sp-chip div{width:16mm;height:6mm;border:.25mm dashed var(--gold);background:#fff;display:flex;align-items:center;justify-content:center;font:400 7.5pt 'Bebas Neue';letter-spacing:.04em;color:var(--navy)}
+.cxa{gap:3mm}
+.cxa-hero{position:relative;height:84mm;flex:none;overflow:hidden}
+.cxa-hero>.cxa-img{position:absolute;inset:0}
+.cxa-img img{width:100%;height:100%;object-fit:cover;object-position:50% 50%}
+.cxa-shade{position:absolute;inset:0;background:linear-gradient(0deg,rgba(14,31,77,1) 0%,rgba(14,31,77,.6) 38%,rgba(14,31,77,0) 70%)}
+.cxa-t{position:absolute;left:4mm;right:4mm;bottom:4mm}
+.cxa-t .kicker{color:var(--gold)}
+.cxa-t h1{font:700 32pt/1 'Playfair Display';color:#fff;margin:1mm 0}.cxa-t h1 i{color:var(--gold);font-weight:400}
+.cxa-t p{font:italic 400 9pt/1.35 'Playfair Display';color:#E6E1D3;max-width:70mm}
+.cxa-cols{columns:2;column-gap:5mm;flex:1;min-height:0;column-fill:auto}
+.cxa-cols p{font:400 7.8pt/1.5 'Raleway';color:#E9ECF4}
+.cxa-cols p+p{margin-top:1.8mm}
+.cxa-first::first-letter{float:left;font:700 26pt/.85 'Playfair Display';color:var(--gold);margin:.6mm 1.4mm 0 0}
+.cxa-stats{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:.6mm solid var(--gold);padding-top:2mm}
+.cxa-stats div{padding:0 2mm}.cxa-stats div+div{border-left:.25mm solid rgba(255,255,255,.18)}
+.cxa-stats b{display:block;font:400 22pt/1 'Bebas Neue';color:var(--gold)}
+.cxa-stats span{display:block;font:600 7.5pt/1.3 'Raleway';color:#E6E1D3;margin-top:.6mm}
+.cxb{gap:2.6mm}
+.cxb h2{font:700 20pt/1.05 'Playfair Display';color:var(--navy)}.cxb h2 i{color:var(--gold2);font-weight:400}
+.cxb-steps{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2mm;position:relative}
+.cxb-steps::before{content:'';position:absolute;left:5mm;right:5mm;top:4.5mm;border-top:.3mm dashed var(--gold2)}
+.cxb-steps div{position:relative}
+.cxb-steps i{display:flex;width:9mm;height:9mm;border-radius:50%;background:var(--navy);color:var(--gold);align-items:center;justify-content:center;font:400 12pt 'Bebas Neue';font-style:normal;border:.5mm solid var(--gold)}
+.cxb-steps b{display:block;font:700 9pt 'Playfair Display';color:var(--navy);margin:1.2mm 0 .4mm}
+.cxb-steps span{display:block;font:400 7.5pt/1.32 'Raleway';color:#444}
+.cxb-st{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:3mm}
+.cxb-s{display:grid;grid-template-columns:22mm 1fr;background:#fff;border:.25mm solid #e2d9c4;border-top:.8mm solid var(--gold)}
+.cxb-s>.cxb-simg{position:relative;min-height:24mm}
+.cxb-simg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cxb-s>div:last-child{padding:1.6mm 2mm}
+.cxb-s em{display:block;font:700 7.5pt 'Raleway';font-style:normal;letter-spacing:.08em;text-transform:uppercase;color:var(--gold2)}
+.cxb-s b{display:block;font:700 9.5pt 'Playfair Display';color:var(--navy);margin:.3mm 0 .5mm}
+.cxb-s p{font:400 7.5pt/1.35 'Raleway';color:#333}
+.cxb-s.dark{background:var(--navy);border-color:var(--navy);border-top-color:var(--gold)}.cxb-s.dark b{color:#fff}.cxb-s.dark p{color:#D5DAE8}.cxb-s.dark em{color:var(--gold)}
+.cxb-rs{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2.6mm}
+.cxb-r{display:flex;flex-direction:column;background:#fff;border:.25mm solid #e2d9c4;border-bottom:.8mm solid var(--gold);min-height:0;overflow:hidden}
+.cxb-r>.cxb-rimg{position:relative;flex:1;min-height:20mm}
+.cxb-rimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cxb-r>div:last-child{flex:none;padding:1.6mm 2mm 2mm}
+.cxb-r b{display:block;font:700 9.5pt 'Playfair Display';color:var(--navy)}
+.cxb-r span{display:block;font:600 7.5pt/1.3 'Raleway';color:var(--gold2);margin:.4mm 0 .6mm}
+.cxb-r p{font:400 7.5pt/1.35 'Raleway';color:#333}
+.cxb-note{font:400 7.5pt 'Raleway';color:var(--grey);flex:none}
+.cxa-cols{column-fill:balance}
+.cxa-q{break-inside:avoid;margin-top:2.6mm;border-left:.8mm solid var(--gold);padding:1mm 0 1mm 2.6mm;font:italic 400 11pt/1.3 'Playfair Display';color:var(--gold)}
+.cxb-t{width:100%;border-collapse:collapse;flex:none}
+.cxb-t th,.cxb-t td{font:400 7.6pt/1.3 'Raleway';color:#333;padding:1mm 1.6mm;border-bottom:.25mm solid #e2d9c4;text-align:left}
+.cxb-t th{font-weight:700;color:var(--navy);width:22%}
+.cxb-t td.h{font:700 7.5pt 'Raleway';letter-spacing:.1em;text-transform:uppercase;color:var(--gold);background:var(--navy)}
+.cxb-t tr:first-child th{background:var(--navy)}
+.cxb-r>.cxb-rimg{flex:1;min-height:16mm}
+.cxb-r:nth-child(2) .cxb-rimg img{object-position:8% 40%}
+/* fix A: cover top line + band, p6 logo clearance */
+.cl-kick{letter-spacing:.05em;font-weight:700}
+.cl-code{letter-spacing:.05em;font-weight:700}
+.cl-band{width:64mm;letter-spacing:.08em;white-space:nowrap}
+.af2 .af-logo{width:28mm;left:auto;right:0}
+
+.cc-qr div{width:17mm;height:17mm;border:none;padding:0}
+.cc-qr div svg{width:100%;height:100%;display:block}
+.cc-qr em small{display:block;font:600 7.5pt/1.2 'Raleway';opacity:.75;word-break:break-all;margin-top:.6mm}
+.cc-grid{flex:none;min-height:auto}.cc-photo{height:auto;flex:1;min-height:24mm}
+
+.cs-hl{display:flex;align-items:center;gap:2.6mm}
+.cc-crest{width:14mm;height:14mm;flex:none}
+.tp-club-l img{width:20mm;height:20mm}
+.tcl .tp-club-l img{width:17mm;height:17mm}
+.clubchip{padding:1.5mm}.clublogo{width:22mm;height:22mm}
+.w-logo{text-align:center;line-height:1.05;padding:0 1mm}
+.w-spons.top em{display:none}
+.w-spons.top .w-logo{font-size:8.5pt}
+.w-spons.mini .w-logo{font-size:7.5pt}
+.s2-spons .w-logo{width:22mm;height:9mm;font-size:8pt}
+.s2-spons em{display:none}
+.vr-photo .imgtag{position:absolute;left:9mm;top:5mm;z-index:3}
+
+.cm-contrib{display:flex;gap:1.6mm;align-items:center;border-top:.2mm solid rgba(255,255,255,.3);padding-top:1.4mm}
+.cm-qr{width:13mm;height:13mm;flex:none}.cm-qr svg,.ww-qr svg{width:100%;height:100%;display:block}
+.cm-contrib b{display:block;font:800 4.4pt 'Raleway';letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.cm-contrib span{font:400 5.2pt/1.35 'Raleway';color:#e9ecf5}
+.ww-cta{grid-template-columns:1fr auto auto}
+.ww-qr{display:flex;flex-direction:column;align-items:center;gap:.6mm}
+.ww-qr div{width:17mm;height:17mm}
+.ww-qr em{font:800 6pt 'Raleway';font-style:normal;letter-spacing:.1em;text-transform:uppercase;color:var(--navy)}
+.cm-contrib{flex-direction:column;align-items:flex-start;gap:1mm}.cm-qr{width:15mm;height:15mm}
+
+/* 16pp contents: long welcome needs a taller hero (26 Oct 2026) */
+.cm-hero.tall{height:64mm}

@@ -1,0 +1,59 @@
+name: Publish magazine issue
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: "Why this build (optional, shown in the run title)"
+        required: false
+        default: ""
+
+run-name: "Publish Issue 01 ${{ inputs.note }}"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: mag
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ghostscript
+          pip install -q pymupdf segno pillow opencv-python-headless playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Build pages
+        run: |
+          python gen.py
+          DHQ_IMGDIR=web_print DHQ_OUTDIR=out_press python gen.py
+
+      - name: Make PDFs
+        run: |
+          mkdir -p pdf canva
+          python makepdf.py render
+          python makecanva.py
+
+      - name: Run publish checks
+        run: |
+          python checks.py
+          cat checks-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the files from this build
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DrinkHQ-Magazine-Issue-01-build-${{ github.run_number }}
+          retention-days: 30
+          path: |
+            mag/pdf/DrinkHQ-Magazine-Issue-01-*October-2026.pdf
+            mag/canva/*.pdf
+            mag/out/DrinkHQ-Magazine_Issue-01_*pp_Official-Record.html
+            mag/checks-report.md
