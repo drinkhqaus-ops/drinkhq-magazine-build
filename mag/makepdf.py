@@ -16,7 +16,7 @@ if 'render' in sys.argv:
           p.add_style_tag(content=EMAIL_CSS); p.wait_for_timeout(300); p.evaluate(GRAD)
           p.pdf(path=f'pdf/raw_email_{t}.pdf',width='148mm',height='210mm',print_background=True,prefer_css_page_size=True); p.close()
       b.close()
-ICC='/usr/share/texlive/texmf-dist/tex/generic/colorprofiles/FOGRA39L_coated.icc'
+ICC=os.path.join(os.path.dirname(os.path.abspath(__file__)),'icc','FOGRA39L_coated.icc')
 for t in ['16','32']:
     press=f'pdf/DrinkHQ-Magazine-Issue-01-{t}pp-Press-300dpi-October-2026.pdf'
     email=f'pdf/DrinkHQ-Magazine-Issue-01-{t}pp-Email-October-2026.pdf'

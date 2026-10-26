@@ -9,7 +9,7 @@ with sync_playwright() as p:
         pg=b.new_page(); pg.goto('file://'+os.path.join(H,src)); pg.wait_for_timeout(1200); pg.evaluate(GRAD); pg.wait_for_timeout(500)
         pg.pdf(path=os.path.join(H,out),prefer_css_page_size=True,print_background=True); pg.close()
     b.close()
-ICC='/usr/share/texlive/texmf-dist/tex/generic/colorprofiles/FOGRA39L_coated.icc'
+ICC=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','mag','icc','FOGRA39L_coated.icc')
 SCREEN='DrinkHQ-Magazine-Media-Kit-October-2026.pdf'
 PRINT='DrinkHQ-Magazine-Media-Kit-PRINT-A5-3mm-bleed-October-2026.pdf'
 subprocess.run(['gs','-q','-dNOPAUSE','-dBATCH','-dSAFER','-sDEVICE=pdfwrite','-dCompatibilityLevel=1.6',
