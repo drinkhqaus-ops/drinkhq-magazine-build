@@ -67,6 +67,10 @@ def folio(n, strip=False):
     cls = 'folio strip' if strip else 'folio'
     return f'<div class="{cls}">// {ISSUE}_ [AU-Melb] // Page {n:02d} //</div>'
 
+# Advertorial label on pages 14, 24 and 26 of the 32pp (4 Nov 2026)
+PROMO = ('<div style="position:absolute;top:22px;right:22px;z-index:5;background:#0E1F4D;color:#EFB40E;padding:7px 11px;font:800 10px/1.35 Raleway,sans-serif;letter-spacing:.16em;text-transform:uppercase;text-align:right">'
+         '<div>Promotion</div><div style="color:#ffffff;font-weight:600;letter-spacing:.02em;text-transform:none">Advertorial available · hello@thedrinkhqexperience.com.au</div></div>')
+
 def frame():
     return '<div class="gframe"></div>'
 
@@ -102,11 +106,56 @@ AD_SPECS = {
     'hquarter': ('QUARTER PAGE · HORIZONTAL', '148 × 52.5 mm', 'Supply 154 × 55.5 mm (bleed on sides and bottom)'),
 }
 
+# House ads (4 Nov 2026): unsold slots carry a DrinkHQ "Advertise" page instead of archive art.
+# art='house0'..'house3' picks the headline; art='house_third' is the narrow third-page version.
+HOUSE = [("This page could be <i>yours.</i>", "Twelve bar teams, five judges and a full room, all reading the official record of the Championship."),
+         ("Pour your brand <i>into the room.</i>", "Put your bottle in the hands of the people who order, pour and judge Melbourne's cocktails."),
+         ("Be on the bar <i>before they order.</i>", "Every round night the magazine is on the bar, at the tables and in the Club lounge."),
+         ("The best seat <i>in print.</i>", "The Championship's own magazine: one issue for every round, from Round 1 to the Grand Final.")]
+HG = '#EFB40E'
+
+def house_full(i, slot, size):
+    h, l = HOUSE[i % 4]
+    h = h.replace('<i>', f'<i style="color:{HG};font-weight:400">')
+    stat = lambda big, txt: f'<div><b style="display:block;font:400 26pt/1 \'Bebas Neue\';color:{HG}">{big}</b><span style="font:500 7.5pt/1.35 Raleway;color:#E6E1D3">{txt}</span></div>'
+    return (f'<div class="house" style="position:absolute;inset:0;z-index:5;background:radial-gradient(ellipse at 30% 0%,#1d3780,#0E1F4D 65%);color:#fff;font-family:Raleway,sans-serif">'
+            f'<div style="position:absolute;left:7mm;top:7mm;right:7mm;bottom:7mm;border:.5mm solid {HG}"></div>'
+            f'<div style="position:absolute;left:15mm;right:15mm;top:30mm;bottom:22mm;display:flex;flex-direction:column;justify-content:space-between"><div>'
+            f'<div style="font:700 7.5pt Raleway;letter-spacing:.22em;text-transform:uppercase;color:{HG}">[ DrinkHQ Magazine ] · Advertise</div>'
+            f'<div style="font:700 31pt/1.02 \'Playfair Display\';margin-top:6mm;max-width:105mm">{h}</div>'
+            f'<div style="font:italic 400 10.5pt/1.4 \'Playfair Display\';color:#E6E1D3;margin-top:5mm;max-width:100mm">{l}</div></div>'
+            f'<div style="border-left:.6mm solid {HG};padding-left:4mm;font:500 8.5pt/1.5 Raleway;color:#E6E1D3;max-width:95mm">Bookings close 28 days before each issue goes on sale.<br>Artwork is due 21 days before.</div>'
+            f'<div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;border-top:.4mm solid {HG};padding-top:4mm">'
+            + stat('500', 'guests in the room, up to, every round night') + stat('9', 'issues a season, one for every round and the Grand Final') + stat('20%', 'off the card for founding advertisers in Season 2027–28')
+            + f'</div><div style="margin-top:7mm;font:400 24pt/1 \'Bebas Neue\';letter-spacing:.04em;color:#fff">Request the media kit</div>'
+            f'<div style="font:600 9pt Raleway;color:{HG};margin-top:1.5mm">{CONTACT}</div>'
+            f'<div style="font:500 7.5pt Raleway;color:#AEB5C8;margin-top:3mm;letter-spacing:.06em">{slot} · {size}</div></div></div></div>')
+
+def house_third(slot):
+    return (f'<div class="house" style="position:absolute;inset:0;z-index:5;background:radial-gradient(ellipse at 30% 0%,#1d3780,#0E1F4D 65%);color:#fff;font-family:Raleway,sans-serif">'
+            f'<div style="position:absolute;left:4mm;top:7mm;right:4mm;bottom:7mm;border:.4mm solid {HG}"></div>'
+            f'<div style="position:absolute;left:7.5mm;right:7mm;top:20mm;bottom:18mm;display:flex;flex-direction:column;justify-content:space-between"><div>'
+            f'<div style="font:700 7.5pt Raleway;letter-spacing:.18em;text-transform:uppercase;color:{HG}">Advertise</div>'
+            f'<div style="font:700 19pt/1.05 \'Playfair Display\';margin-top:5mm">Your brand <i style="color:{HG};font-weight:400">here.</i></div>'
+            f'<div style="font:italic 400 8.5pt/1.4 \'Playfair Display\';color:#E6E1D3;margin-top:4mm">In the hands of every guest on a round night.</div></div>'
+            f'<div><div style="font:400 17pt/1 \'Bebas Neue\';color:#fff">Request the media kit</div>'
+            f'<div style="font:600 7.5pt Raleway;color:{HG};margin-top:1.5mm;">hello@thedrinkhq<br>experience.com.au</div>'
+            f'<div style="font:500 7.5pt Raleway;color:#AEB5C8;margin-top:3mm">{slot} · Third page</div></div></div></div>')
+
+def house_size(slot, note):
+    if 'Inside front' in note: return 'Inside front cover'
+    if 'Inside back' in note: return 'Inside back cover'
+    if 'Outside back' in note: return 'Outside back cover'
+    return 'Full page'
+
 def ad(kind, slot, note='', recto=True, art=None, fit='cover', pos='50% 50%', bg='#111'):
     name, size, supply = AD_SPECS[kind]
     side = 'r' if recto else 'l'
     n = f'<div class="ad-note">{note}</div>' if note else ''
-    if art and art is not True:
+    if isinstance(art, str) and art.startswith('house'):
+        a = house_third(slot) if art == 'house_third' else house_full(int(art[5:]), slot, house_size(slot, note))
+        badge = ''; hc = ' has-art'
+    elif art and art is not True:
         a = f'<img class="adart" alt="" src="{img(art)}" style="object-fit:{fit};object-position:{pos};background:{bg}">'
         badge = f'<div class="sample-tag" contenteditable="false">SAMPLE AD · ARCHIVE · {slot} · {name}</div>'
         hc = ' has-art'
@@ -116,7 +165,7 @@ def ad(kind, slot, note='', recto=True, art=None, fit='cover', pos='50% 50%', bg
 {a}{badge}
 <div class="ad-inner" contenteditable="false"><div class="ad-tag">ADVERTISEMENT · {slot}</div>
 <div class="ad-name">{name}</div><div class="ad-size">{size}</div><div class="ad-supply">{supply}</div>{n}
-<div class="ad-book">Bookings · {PARTNER}</div></div></div>'''
+<div class="ad-book">Bookings · {CONTACT}</div></div></div>'''
 
 # ---------------------------------------------------------------- pages
 def cover(n):
@@ -166,7 +215,7 @@ def welcome(n, with_contents=None, masthead=False):
     if masthead:
         mh = f'''<div class="masthead"><div class="label">DrinkHQ Magazine</div>
 <p><b>Publisher</b> Mark Buckley · mark@thedrinkhqexperience.com.au</p>
-<p><b>Advertising</b> {PARTNER}</p>
+<p><b>Advertising</b> {CONTACT}</p>
 <p class="small">Published by Business Intelligence International Pty Ltd, trading as The DrinkHQ Experience · PO Box 5112, Hughesdale VIC 3166 · {CONTACT} · {WEBSITE}</p>
 <p class="small">DrinkHQ Magazine is a free publication distributed through selected venues. Views expressed are not necessarily those of the publisher. No responsibility is accepted for the accuracy of advertisements. Material sent to the magazine is assumed to be for publication unless marked “Not for publication”. No reproduction in whole or in part without permission. DrinkHQ supports the responsible service and consumption of alcohol. © DrinkHQ 2027. Please do not litter.</p></div>'''
     return f'''{frame()}<div class="safe">
@@ -223,7 +272,7 @@ CLUBBOX = '''<div class="tp-club"><div class="tp-club-l"><img src="CLUBIMG" alt=
 <p class="small">Prices include GST. Benefits vary by tier and are subject to the current Membership Terms.</p></div></div>'''
 
 def ladder(n, strip=False):
-    rows = ''.join(f'<tr class="{"q" if i < 6 else ""}"><td>{i+1}</td><td>Team {i+1:02d} · [Team name / venue]</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>' for i in range(12))
+    rows = ''.join(f'<tr class="{"q" if i < 6 else ""}"><td>{i+1}</td><td>Team {i+1:02d} · [Team name / venue]</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>' for i in range(12))
     s = ad('hstrip', f'AD-{n:02d}-S', '', n % 2 == 1) if strip else ''
     return f'''{frame()}<div class="safe {'withstrip' if strip else ''}">
 <div class="kicker">Season 2027–28</div>
@@ -231,7 +280,7 @@ def ladder(n, strip=False):
 <div class="flow"><div><b>Round-by-round</b><span>Teams face off across eight themed rounds. Points from every round count towards the ladder.</span></div>
 <div class="arrow">→</div><div><b>Grand Final</b><span>The top six teams after Round 8 qualify for the Grand Final. Date to be announced.</span></div>
 <div class="arrow">→</div><div class="dark"><b>Champions</b><span>DrinkHQ Cocktail Mastery Champions 2027–28</span></div></div>
-<table class="ladder"><thead><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>L</th><th>PF</th><th>Pts</th></tr></thead><tbody>{rows}</tbody></table>
+<table class="ladder"><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>CP</th><th>TASTE %</th></tr></thead><tbody>{rows}</tbody></table>
 <p class="note">The ladder opens after Round 1. Gold rows mark the Grand Final places. Team names are published once the Founding 12 are confirmed. {ph()}</p>
 </div>{s}{folio(n, strip)}'''
 
@@ -246,7 +295,7 @@ def round1(n, strip=False):
 <div class="label mt">Match fixture {ph('RELEASED AFTER TEAM SELECTION')}</div>
 <div class="fixture">{fx}</div>
 <div class="theme-box"><b>THEME OVERVIEW</b><p>Lights, camera, shake. Teams are judged on how clearly the drink tells its film’s story — in the glass, the garnish and the presentation.</p></div>
-<p class="note">General Admission from $15 (advance). Ticket sales open soon at {WEBSITE}. Round themes subject to change.</p>
+<p class="note">General Admission $25. Ticket sales open soon at {WEBSITE}. Round themes subject to change.</p>
 {'' if strip else photo('lemonmart','flexpic')}</div>{s}{folio(n, strip)}'''
 
 def calendar(n):
@@ -363,7 +412,7 @@ def top10(n):
     return f'''{frame()}<div class="safe t10b">
 <div class="t10b-col"><div class="t10b-left">{photo('martini','t10b-bg',fixed=True)}<div class="t10b-tint"></div>
 <div class="t10b-in"><div class="kicker">DrinkHQ</div><h1 class="sec t10b-sec">Top 10</h1><h2>Movie cocktails worth a <i>rewatch</i></h2><ol>{t}</ol></div></div>
-<div class="t10b-cta"><span>See it live</span><b>Round 1 · Cinematic Cocktails</b><p>Monday 21 June 2027, 7:00 PM. Tickets from $15.</p><div class="t10b-btn"><small>Book tickets at</small><b>{WEBSITE}</b></div></div></div>
+<div class="t10b-cta"><span>See it live</span><b>Round 1 · Cinematic Cocktails</b><p>Monday 21 June 2027, 7:00 PM. Tickets from $25.</p><div class="t10b-btn"><small>Book tickets at</small><b>{WEBSITE}</b></div></div></div>
 <div class="t10b-right"><h2 class="t10b-h">The DrinkHQ Guide to <i>Bar Lingo</i></h2><div class="kicker2">A TO Z</div><div class="gloss2">{g}</div>
 <div class="strip3 t10b-pics">{''.join(f'<div class="t10b-pic">{photo(k,fixed=True)}<div class="t10b-pcap"><b>{t}</b>{d}</div></div>' for k,t,d in (('negroni','Expressed','Orange peel over a Negroni'),('pour3','Jigger','Every pour measured'),('lemonmart','Garnish','The finishing touch')))}</div></div>
 </div>{folio(n)}'''
@@ -492,7 +541,7 @@ def news_hot(n, strip=None):
     news = [('The Founding 12 take shape', f'Invitations have gone to bars across Melbourne for twelve places in the inaugural Championship. Application dates go to registered teams first. Contact {REGISTER}.'),
             ('Season 2027–28 confirmed', 'Eight Monday-night rounds, six weeks apart, from 21 June 2027 to 10 April 2028. The Grand Final date will be announced later in the season.'),
             ('Get the taste of it', f'DrinkHQ will run its own tasting series, with experts sharing what they know with the willing few. Register your interest at {CONTACT}.'),
-            ('Every drink, scored on TASTE', 'Each cocktail is judged on Taste, Appearance, Skill, Theme and Engagement, so every point on the ladder can be traced back to the glass.'),
+            ('Every drink, scored on TASTE', 'Each cocktail is judged on Taste, Appearance, Skill, Theme and Engagement, so every result on the ladder can be traced back to the glass.'),
             ('People’s Choice Awards', 'Alongside the Championship, the public will vote for the bars and bartenders they love most. Voting details to come in a later issue.'),
             ('The Connoisseurs Club opens', 'Membership for people who like to know what’s in the glass: entry to all eight rounds, a cocktail on us every round and members’ nights.')]
     hot = ['Monday nights at the Championship', 'Hosting your own home cocktail party', 'Travelling to new bars',
@@ -544,7 +593,7 @@ def championship(n):
 <div><h3>Scoring · TASTE</h3><div class="cf-tw">{tw}</div><p class="small">Five scoring judges per round; a performance’s score is the average of their totals.</p></div>
 <div><h3>Bonus points</h3><p>Mystery Box +5 · People’s Choice +3 · Consistency +3 · Fastest Finish +2 · Best Teamwork +2 · Rookie of the Round +2</p><p>Top six after Round 8 go to the Grand Final, seeded by ladder position.</p></div>
 </div>
-<p class="note">Round themes subject to change. General Admission from $15. Ticket sales open soon at {WEBSITE}.</p>
+<p class="note">Round themes subject to change. General Admission $25. Ticket sales open soon at {WEBSITE}.</p>
 </div>{folio(n)}'''
 
 BARS16 = [
@@ -603,7 +652,7 @@ def review2(n, side_art=None):
     h = ad('third', f'AD-{n:02d}-T', 'Third page vertical', recto, art=side_art) if side_art else ''
     cls = 'witht-' + ('r' if recto else 'l')
     items = ''.join(f'<div class="wk">{photo(k,"wk-img",fixed=True)}<div><h3>{t}</h3><div class="wk-cat">{c}</div><p>{d}</p><div class="stars">{"★"*st}{"☆"*(5-st)}</div></div></div>' for k, t, c, d, st in WHISKY)
-    return f'''{frame()}<div class="safe {cls} rv5 lite">{head('Review', 'New on the back bar')}{ARCH.replace(' · DRINK 2007','')}
+    return f'''{frame()}{PROMO}<div class="safe {cls} rv5 lite">{head('Review', 'New on the back bar')}{ARCH.replace(' · DRINK 2007','')}
 <div class="wks">{items}</div></div>{h}{folio(n)}'''
 
 def spirit_abs(n):
@@ -638,7 +687,7 @@ def art_feature(n):
 <div class="af-cols"><div><div class="af-label">What to expect</div><ul class="af-exp">{e}</ul></div>
 <div><div class="af-label">How a round works</div>
 <div class="af-steps"><div><b>01</b><span><i>Preparation · 2 min</i>Teams set up their station and check every ingredient.</span></div><div><b>02</b><span><i>Individual match · 7 min</i>One bartender from each team, head to head.</span></div><div><b>03</b><span><i>Team match · 7 min</i>The whole team, true to the theme, with the story behind the drink. Counts double.</span></div></div>
-<p class="af-small af-mb">Six match-ups a night · every round includes a Mystery Box element.</p>
+<p class="af-small af-mb">Six match-ups a night · a win is 4 ladder points, a draw 2.</p>
 </div></div>
 <div class="af-label">Judged on TASTE</div><div class="af-taste">{t}</div>
 <p class="af-small"><b>The Grand Final.</b> The top six on the ladder play off on one night. First and second go straight to the semi-finals; third to sixth play for the other two places. Teams of up to four · five judges a round.</p>
@@ -749,7 +798,7 @@ def shaken_v2(n):
     return f'''<div class="bleedimg navyfill"></div><div class="safe onnavy s2">
 <div class="s2-hero">{photo('ss_pour','s2-hero-img',fixed=True)}<div class="s2-hshade"></div>
 <div class="s2-ht"><div class="kicker">[ shaken &amp; stirred ]</div><h1>Shaken <i>&amp; Stirred</i></h1><p>All the info you need to get through life.</p></div>
-<div class="s2-spons"><span>Brought to you by</span><div class="w-logo">SPONSORSHIP AVAILABLE</div><em>partner@thedrinkhqexperience.com.au</em></div></div>
+<div class="s2-spons"><span>Brought to you by</span><div class="w-logo">SPONSORSHIP AVAILABLE</div><em>{CONTACT}</em></div></div>
 <div class="s2-dyk"><div class="s2-dyk-ph">{photo('ss_capone','s2-img',fixed=True)}</div>
 <div><div class="s2-tag">Did you know?</div><div class="s2-big">$50 million</div><p>That is roughly what Al Capone is said to have made in a single year from bootleg alcohol during Prohibition.</p></div></div>
 <div class="s2-grid">{c}</div>
@@ -785,7 +834,7 @@ def contents_mast(n, items, tiles, short=False):
 <img class="cm-logo" src="{img('wordmark_gold.png')}" alt="drinkhq"><div class="cm-mag">MAGAZINE</div>
 <dl>
 <dt>Publisher</dt><dd>Mark Buckley<br>mark@thedrinkhqexperience.com.au</dd>
-<dt>Advertising</dt><dd>partner@thedrinkhqexperience.com.au</dd>
+<dt>Advertising</dt><dd>{CONTACT}</dd>
 <dt>Special thanks</dt><dd>All the bartenders who drank with us.</dd>
 </dl>
 <div class="cm-contrib"><b>Write for us</b><div class="cm-qr">{_qr('https://drinkhqmedia.com/contribute/')}</div><span>Stories, photos and bartender interviews. Scan to send yours in.</span></div>
@@ -819,7 +868,7 @@ def art_match(n, house=False, qart=None):
 
 def round1_ladder(n):
     fx = ''.join(f'<div class="fx {"alt" if i % 2 == 0 else ""}"><span>Team {2*i+1:02d} · [Name]</span><em>vs</em><span>Team {2*i+2:02d} · [Name]</span></div>' for i in range(6))
-    rows = ''.join(f'<tr class="{"q" if i < 6 else ""}"><td>{i+1}</td><td>Team {i+1:02d} · [Team name / venue]</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>' for i in range(12))
+    rows = ''.join(f'<tr class="{"q" if i < 6 else ""}"><td>{i+1}</td><td>Team {i+1:02d} · [Team name / venue]</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>' for i in range(12))
     return f'''{frame()}<div class="safe rl">
 <div class="r1-head"><div><div class="kicker">Round 1</div><h1 class="big">Cinematic <i>Cocktails</i></h1></div>
 <div class="r1-date"><b>MONDAY 21 JUNE 2027</b><span>7:00 PM · Venue to be announced</span></div></div>
@@ -827,14 +876,14 @@ def round1_ladder(n):
 <div><div class="label">Match fixture {ph('AFTER TEAM SELECTION')}</div><div class="fixture">{fx}</div></div></div>
 <div class="rl-lad"><div class="rl-lh"><div class="kicker">Season 2027–28</div><h2 class="rl-h2">Championship <i>Ladder</i></h2></div>
 <div class="flow"><div><b>Round-by-round</b><span>Eight themed rounds. Every round counts.</span></div><div class="arrow">→</div><div><b>Grand Final</b><span>Top six after Round 8. Date TBA.</span></div><div class="arrow">→</div><div class="dark"><b>Champions</b><span>DrinkHQ Cocktail Mastery Champions 2027–28</span></div></div></div>
-<table class="ladder"><thead><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>L</th><th>PF</th><th>Pts</th></tr></thead><tbody>{rows}</tbody></table>
-<p class="note">The ladder opens after Round 1; gold rows mark Grand Final places. General Admission from $15 (advance) at {WEBSITE}. Round themes subject to change.</p>
+<table class="ladder"><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>CP</th><th>TASTE %</th></tr></thead><tbody>{rows}</tbody></table>
+<p class="note">The ladder opens after Round 1; gold rows mark Grand Final places. General Admission $25 at {WEBSITE}. Round themes subject to change.</p>
 </div>{folio(n)}'''
 
 def news_v3(n):
     news = [('Season 2027–28 confirmed', 'Eight Monday-night rounds, six weeks apart, from 21 June 2027 to 10 April 2028. The Grand Final date will be announced later in the season.'),
             ('Get the taste of it', f'DrinkHQ will run its own tasting series, with experts sharing what they know with the willing few. Register your interest at {CONTACT}.'),
-            ('Every drink, scored on TASTE', 'Each cocktail is judged on Taste, Appearance, Skill, Theme and Engagement, so every point on the ladder can be traced back to the glass.'),
+            ('Every drink, scored on TASTE', 'Each cocktail is judged on Taste, Appearance, Skill, Theme and Engagement, so every result on the ladder can be traced back to the glass.'),
             ('People’s Choice Awards', 'Alongside the Championship, the public will vote for the bars and bartenders they love most. Voting details to come in a later issue.'),
             ('The Connoisseurs Club opens', 'Membership for people who like to know what’s in the glass: entry to all eight rounds, a cocktail on us every round and members’ nights.')]
     hot = ['Monday nights at the Championship', 'Hosting your own home cocktail party', 'Travelling to new bars',
@@ -857,8 +906,8 @@ def round1_full(n):
     fx = ''.join(f'<div class="r2-fx"><span><i>{2*i+1:02d}</i>[Team name]</span><em>VS</em><span>[Team name]<i>{2*i+2:02d}</i></span></div>' for i in range(6))
     night = [('Doors 5 pm', 'The bar opens, the crowd settles in.'),
              ('Six match-ups from 7 pm', 'Individual match, 7 min, one bartender per team. Team match, 7 min, the whole team. Counts double.'),
-             ('Five judges, one crowd', 'Every drink scored on TASTE. The crowd votes People’s Choice.'),
-             ('Done by 11 pm', 'Points go on the season ladder, published after each round.')]
+             ('Five judges, one crowd', 'Every drink scored on TASTE. The room votes Crowd Favourite in the DrinkHQ app.'),
+             ('Done by 11 pm', 'A win is 4 points, a draw 2. The ladder is published after each round.')]
     nights = ''.join(f'<div class="r3-n"><i>{k+1}</i><div><b>{t}</b><span>{d}</span></div></div>' for k, (t, d) in enumerate(night))
     pics = ''.join(f'<div class="t10b-pic">{photo(k,fixed=True)}<div class="t10b-pcap"><b>{t}</b>{d}</div></div>' for k, t, d in [('pinkmart', 'On screen', 'A cocktail that plays a part'), ('martini', 'In the glass', 'A scene you can taste'), ('stir', 'Behind the bar', 'The craft in every pour')])
     taste = ''.join(f'<div class="r3-t"><b>{l}</b><span>{w}%</span><i>{name.split()[0]}</i></div>' for l, name, w, _ in TASTE)
@@ -866,14 +915,14 @@ def round1_full(n):
 <div class="r3-hero">{photo('tie','r3-hero-img',fixed=True)}<div class="r3-shade"></div>
 <div class="r3-ht"><div class="kicker">Round 1 · Season 2027–28</div><h1>Cinematic <i>Cocktails</i></h1><p>Iconic films, captured in a glass.</p></div>
 <div class="r2-date r3-date"><b>MON 21 JUNE 2027</b><span>7:00 PM · Venue to be announced</span></div></div>
-<div class="r3-brief"><span class="r3-tag">The brief</span><p>Capture a scene, a character or a moment in every sip. Each team creates a cocktail inspired by a film, and the judges score how clearly the drink tells that story: in the glass, the garnish and the presentation. As in every round, there is a Mystery Box element.</p></div>
+<div class="r3-brief"><span class="r3-tag">The brief</span><p>Capture a scene, a character or a moment in every sip. Each team creates a cocktail inspired by a film, and the judges score how clearly the drink tells that story: in the glass, the garnish and the presentation.</p></div>
 <div class="r3-pics">{pics}</div>
 <div class="r3-mid">
 <div class="r3-fix"><div class="r3-lab">Match fixture {ph('AFTER TEAM SELECTION')}</div>{fx}</div>
 <div class="r3-night"><div class="r3-lab">How the night runs</div>{nights}</div>
 </div>
 <div class="r3-taste"><span class="r3-lab">Scored on TASTE</span>{taste}</div>
-<div class="r3-tix"><div><b>Be in the room</b><span>General Admission from $15 and Food &amp; Drink tables for five. Sales open soon.</span></div><div class="nh2-btn">Book tickets<small>{WEBSITE}</small></div></div>
+<div class="r3-tix"><div><b>Be in the room</b><span>General Admission $25 and Food &amp; Drink tables for five. Sales open soon.</span></div><div class="nh2-btn">Book tickets<small>{WEBSITE}</small></div></div>
 </div>{folio(n)}'''
 
 def team_focus(n):
@@ -897,7 +946,7 @@ def team_focus(n):
 def news_v4(n):
     news = [('team3', 'The Founding 12 take shape', f'Invitations have gone to bars across Melbourne for twelve places in the inaugural Championship. Application dates go to registered teams first.'),
             (None, 'Season 2027–28 confirmed', 'Eight Monday-night rounds, six weeks apart, from 21 June 2027 to 10 April 2028. The Grand Final date will be announced later in the season.'),
-            (None, 'Every drink, scored on TASTE', 'Each cocktail is judged on Taste, Appearance, Skill, Theme and Engagement, so every point on the ladder can be traced back to the glass.'),
+            (None, 'Every drink, scored on TASTE', 'Each cocktail is judged on Taste, Appearance, Skill, Theme and Engagement, so every result on the ladder can be traced back to the glass.'),
             ('mint', 'Get the taste of it', f'DrinkHQ will run its own tasting series, with experts sharing what they know with the willing few. Register your interest through the contacts on page 3.'),
             ('bw', 'People’s Choice Awards', 'Alongside the Championship, the public will vote for the bars and bartenders they love most. Voting details to come in a later issue.'),
             (None, 'The Connoisseurs Club opens', 'Membership for people who like to know what’s in the glass: entry to all eight rounds, a cocktail on us every round and members’ nights.')]
@@ -955,7 +1004,7 @@ def _pol(k, num, rot):
     return f'<div class="wpol" style="transform:rotate({rot}deg)">{photo(k,"wpol-img",fixed=True)}<span>{num}</span></div>'
 
 def _wspons(cls=''):
-    return f'<div class="w-spons {cls}"><span>Brought to you by</span><div class="w-logo">SPONSORSHIP AVAILABLE</div><em>partner@thedrinkhqexperience.com.au</em></div>'
+    return f'<div class="w-spons {cls}"><span>Brought to you by</span><div class="w-logo">SPONSORSHIP AVAILABLE</div><em>{CONTACT}</em></div>'
 
 def wwyln_a(n):
     rots = [-2, 1.5, -1, 2, -1.5, 1, -1, 2, -2]
@@ -986,7 +1035,7 @@ def martini_history(n):
              'Prohibition in 1920s America helped it along. Whiskey had been the spirit of choice, but gin was easier and cheaper to make and needed no ageing, so a gin cocktail like the Martini was bound to thrive in the speakeasies.',
              'Its place in popular culture did the rest. Beyond Bond and Maugham, its devotees included F. Scott Fitzgerald, Roosevelt, Hemingway, Capote, Hitchcock and Churchill. Hemingway’s “Montgomery” ran 15 parts gin to one of vermouth, said to be the odds Field Marshal Montgomery liked before a battle. Churchill skipped the vermouth entirely: a cold glass of gin and a nod in the direction of Italy.']
     body = ''.join(f'<p>{p}</p>' for p in paras)
-    return f'''{frame()}<div class="safe mh lite">
+    return f'''{frame()}{PROMO}<div class="safe mh lite">
 <div class="s2-hero mh-hero">{photo('mt_olive','s2-hero-img',fixed=True)}<div class="s2-hshade"></div>
 <div class="s2-ht"><div class="kicker">[ History of… ]</div><h1>The <i>Martini</i></h1><p>Shaken or stirred, and who poured the first one.</p></div></div>
 <div class="mh-body">{body}</div>
@@ -1002,7 +1051,7 @@ def mixology_x(n):
          ('mx_straw', 'Strawberry Fusion', ['45 ml X-Rated Fusion', '30 ml Ketel One vodka', '15 ml strawberry liqueur', '4 fresh strawberries'], 'Blend everything with crushed ice until smooth.'),
          ('mx_apple', 'X-Rated Apple', ['30 ml Ketel One vodka', '20 ml X-Rated Fusion', '20 ml Midori', 'Apple, cranberry and lime juice'], 'Shake the spirits with the juices and strain over ice.')]
     cards = ''.join(f'''<div class="mx-card"><div class="mx-ph">{photo(k,'mx-img',fixed=True)}<i>{i+1:02d}</i></div><div class="mx-b"><h3>{t}</h3>{''.join(f"<span>{x}</span>" for x in ing)}<p>{m}</p></div></div>''' for i, (k, t, ing, m) in enumerate(R))
-    return f'''{frame()}<div class="safe mx">
+    return f'''{frame()}{PROMO}<div class="safe mx">
 <div class="s2-hero mx-hero">{photo('mx_barman2','s2-hero-img',fixed=True)}<div class="s2-hshade"></div>
 <div class="s2-ht"><div class="kicker">[ Mixology ] · Featuring X-Rated Fusion</div><h1>Drink <i>Pink</i></h1><p>Four serves from the bar at The Morgan, Dublin.</p></div>
 <div class="mx-barman"><b>Barman</b><span>Peter O’Connor</span><em>The Morgan Bar, Temple Bar</em></div></div>
@@ -1012,7 +1061,7 @@ def mixology_x(n):
 </div>{folio(n)}'''
 
 def _cspons(cls=''):
-    return f'<div class="w-spons {cls}"><span>Sponsored by</span><div class="w-logo">SPONSORSHIP AVAILABLE</div><em>partner@thedrinkhqexperience.com.au</em></div>'
+    return f'<div class="w-spons {cls}"><span>Sponsored by</span><div class="w-logo">SPONSORSHIP AVAILABLE</div><em>{CONTACT}</em></div>'
 
 def champ_season(n):
     pics = ['tie', 'stir', 'negroni', 'pinkmart', 'barrels', 'cane', 'mint', 'bottles']
@@ -1042,9 +1091,9 @@ def _qr(url, border=2):
     return q.svg_inline(scale=1, border=border, dark='#0E1F4D', light='#ffffff', omitsize=True)
 
 def champ_tickets(n):
-    tix = [('General Admission', '$15', 'advance · $25 at the door', 'Entry to one round night: the matches, the judging and the bar.'),
+    tix = [('General Admission', '$25', 'per person, per round', 'Entry to one round night: the matches, the judging and the bar.'),
            ('Food &amp; Drink Package', '$400', 'table of five · $80 a head', 'A reserved table for five with food and drink included.')]
-    tc = ''.join(f'<div class="ct-c"><b>{a}</b><strong>{p}</strong><span>{u}</span><p>{d}</p></div>' for a, p, u, d in tix) + '<div class="ct-c club"><b>Coming to every round?</b><strong>Join</strong><span>the Connoisseurs Club</span><p>Every membership includes entry to all eight rounds. See below.</p></div>'
+    tc = ''.join(f'<div class="ct-c"><b>{a}</b><strong>{p}</strong><span>{u}</span><p>{d}</p></div>' for a, p, u, d in tix) + '<div class="ct-c club"><b>Coming to every round?</b><strong>Join</strong><span>the Connoisseurs Club</span><p>All eight rounds included: book your place each round, subject to capacity.</p></div>'
     tiers = [('Taste Trailblazer', '$239', ['All 8 rounds, general entry', 'A cocktail on us every round', 'Members’ lounge on round nights', 'Digital magazine and recipe book', 'Members-only community', '5% off merchandise']),
              ('Cocktail Connoisseur', '$359', ['Everything in Trailblazer', 'Priority entry on round nights', 'People’s Choice vote every round', 'Grand Final People’s Choice vote', 'Quarterly masterclasses', 'Expanded recipe collection', '10% off merchandise']),
              ('Liquid Luminary', '$549', ['Everything in Connoisseur', 'VIP entry and meet-and-greet', 'Pre-event tasting', 'A guest ticket and numbered pin', 'Behind-the-scenes tour', 'Live Q&amp;A, quarterly', '15% off merchandise'])]
@@ -1061,7 +1110,7 @@ def champ_tickets(n):
 
 def round1_v2(n):
     fx = ''.join(f'<div class="r2-fx"><span><i>{2*i+1:02d}</i>[Team name]</span><em>VS</em><span>[Team name]<i>{2*i+2:02d}</i></span></div>' for i in range(6))
-    rows = ''.join(f'<tr class="{"q" if i < 6 else ""}"><td>{i+1}</td><td>Team {i+1:02d} · [Team name / venue]</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>' for i in range(12))
+    rows = ''.join(f'<tr class="{"q" if i < 6 else ""}"><td>{i+1}</td><td>Team {i+1:02d} · [Team name / venue]</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr>' for i in range(12))
     return f'''{frame()}<div class="safe r2">
 <div class="r2-hero">{photo('tie','r2-hero-img',fixed=True)}<div class="r2-shade"></div>
 <div class="r2-ht"><div class="kicker">Round 1 · Season 2027–28</div><h1>Cinematic <i>Cocktails</i></h1><p>Iconic films, captured in a glass.</p></div>
@@ -1069,10 +1118,10 @@ def round1_v2(n):
 <div class="r2-mid"><div class="r2-fix"><div class="label">Match fixture {ph('AFTER TEAM SELECTION')}</div>{fx}</div>
 <div class="r2-theme"><div class="r2-strip">{photo('pinkmart','r2-s',fixed=True)}{photo('martini','r2-s',fixed=True)}{photo('stir','r2-s',fixed=True)}</div>
 <b>The brief</b><p>Capture a scene, a character or a moment in every sip. Judged on how clearly the drink tells its film’s story, in the glass, the garnish and the presentation.</p>
-<div class="r2-tix">Tickets from $15 · {WEBSITE}</div></div></div>
+<div class="r2-tix">Tickets from $25 · {WEBSITE}</div></div></div>
 <div class="r2-lh"><div><div class="kicker">Season 2027–28</div><h2 class="rl-h2">Championship <i>Ladder</i></h2></div>
 <div class="r2-steps"><span>8 rounds</span><em>→</em><span>Top 6 to the Grand Final</span><em>→</em><span class="gd">Champions</span></div></div>
-<table class="ladder"><thead><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>L</th><th>PF</th><th>Pts</th></tr></thead><tbody>{rows}</tbody></table>
+<table class="ladder"><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>CP</th><th>TASTE %</th></tr></thead><tbody>{rows}</tbody></table>
 <p class="note">The ladder opens after Round 1; gold rows mark Grand Final places. Round themes subject to change.</p>
 </div>{folio(n)}'''
 
@@ -1080,60 +1129,60 @@ def plan16():
     # 9 full ad pages + 2 strips; Championship pages replace the archive features (24 Oct 2026)
     P = {}
     P[1] = ('cover', lambda n: cover_issue(n, 8, [(8, 'ROUND 1', '<b>Cinematic <i>Cocktails</i></b>, fixture and the ladder'), (6, 'THE ART OF COCKTAIL MASTERY', 'What to expect, and TASTE explained'), (10, 'THE TEAMS', 'Meet the Founding 12'), (4, 'NEWS', 'What’s hot, and the facts'), (13, 'BARS IN BRIEF', 'Three Melbourne bars, rated'), (3, 'WELCOME', 'A word from the source')]))
-    P[2] = ('ad', lambda n: page_ad(n, 'AD-02', 'Inside front cover · facing Contents', 'ad_patron'))
+    P[2] = ('ad', lambda n: page_ad(n, 'AD-02', 'Inside front cover · facing Contents', 'house0'))
     P[3] = ('ed', lambda n: contents_mast(n, [(4, 'News &amp; What’s Hot', 'Giving you the facts'), (6, 'The Art of Cocktail Mastery', 'Match overview &amp; TASTE'), (8, 'Round 1 · Cinematic Cocktails', 'Fixture &amp; Championship ladder'), (10, 'Teams', 'Meet the Founding 12 · the season'), (10, 'Connoisseurs Club', 'Three ways to join'), (13, 'Bars in Brief', 'A pinch of pubs, a dash of bars')],
         [('pour3', 6, 'The Art'), ('tie', 8, 'Round 1'), ('bib_gb', 13, 'Bars in Brief')]))
     P[4] = ('ed', lambda n: news_hot(n, 'strip_nash_c'))
-    P[5] = ('ad', lambda n: page_ad(n, 'AD-05', 'Full page · right hand · facing News', 'ad_ketel'))
+    P[5] = ('ad', lambda n: page_ad(n, 'AD-05', 'Full page · right hand · facing News', 'house1'))
     P[6] = ('ed', art_match)
-    P[7] = ('ad', lambda n: page_ad(n, 'AD-07', 'Full page · right hand · facing The Art of Cocktail Mastery', 'ad_chambord'))
+    P[7] = ('ad', lambda n: page_ad(n, 'AD-07', 'Full page · right hand · facing The Art of Cocktail Mastery', 'house2'))
     P[8] = ('ed', round1_ladder)
-    P[9] = ('ad', lambda n: page_ad(n, 'AD-09', 'Full page · right hand · facing Round 1', 'ad_social'))
+    P[9] = ('ad', lambda n: page_ad(n, 'AD-09', 'Full page · right hand · facing Round 1', 'house3'))
     P[10] = ('ed', teams_club)
-    P[11] = ('ad', lambda n: page_ad(n, 'AD-11', 'Full page · right hand, facing Teams', 'ad_frangelico'))
-    P[12] = ('ad', lambda n: page_ad(n, 'AD-12', 'Full page · left hand, facing Bars in Brief', 'ad_vibe'))
+    P[11] = ('ad', lambda n: page_ad(n, 'AD-11', 'Full page · right hand, facing Teams', 'house1'))
+    P[12] = ('ad', lambda n: page_ad(n, 'AD-12', 'Full page · left hand, facing Bars in Brief', 'house2'))
     P[13] = ('ed', lambda n: bars_brief(n, BARS16, 'strip_tajga_c'))
-    P[14] = ('ad', lambda n: page_ad(n, 'AD-14', 'Full page · left hand', 'ad_haze'))
-    P[15] = ('ad', lambda n: page_ad(n, 'AD-15', 'Inside back cover', 'ad_epicurean'))
-    P[16] = ('ad', lambda n: page_ad(n, 'AD-16', 'Outside back cover', 'ad_illusion'))
+    P[14] = ('ad', lambda n: page_ad(n, 'AD-14', 'Full page · left hand', 'house3'))
+    P[15] = ('ad', lambda n: page_ad(n, 'AD-15', 'Inside back cover', 'house0'))
+    P[16] = ('ad', lambda n: page_ad(n, 'AD-16', 'Outside back cover', 'house1'))
     return P
 
 def plan32():
     # 17 full ad pages + 3 strips + 1 half = 18.3 of 32 pp (57%) — Traveller page added Oct 2026
     P = {}
     P[1] = ('cover', lambda n: cover_issue(n, 8, [(16, 'TEAM FOCUS', '<b>Meet the <i>Founding 12</i></b>'), (8, 'ROUND 1', 'Cinematic Cocktails: the brief and the night'), (20, 'BARS IN BRIEF', 'Three Melbourne bars, rated'), (22, 'SPIRIT EXPLAINED', 'Viva Cachaça! Brazil’s national spirit'), (27, 'TRAVELLER', 'Caretaker’s Cottage, Melbourne: a bar worth the trip')]))
-    P[2] = ('ad', lambda n: page_ad(n, 'AD-02', 'Inside front cover · facing Contents', 'ad_patron'))
+    P[2] = ('ad', lambda n: page_ad(n, 'AD-02', 'Inside front cover · facing Contents', 'house0'))
     ct = [(4, 'News &amp; What’s Hot', 'Keeping you in the know'), (6, 'The Art of Cocktail Mastery', 'The format &amp; how TASTE works'), (8, 'Round 1 · Cinematic Cocktails', 'The brief, fixture &amp; the night'), (10, 'Shaken &amp; Stirred', 'All the info you need'), (12, 'Top 10 &amp; Bar Lingo', 'Movie cocktails, A to Z of the bar'), (14, 'Review', 'Five new on the back bar'), (16, 'Team Focus', 'Two of the Founding 12'), (18, 'Bar Review', 'Above Board, Collingwood'), (20, 'Bars in Brief', 'Three bars, rated'), (22, 'Spirit Explained', 'Viva Cachaça!'), (24, 'Mixology', 'Drink Pink: four serves'), (26, 'History of the Martini', 'Shaken or stirred'), (27, 'Traveller', 'Caretaker’s Cottage'), (28, 'The Championship', 'Season, tickets &amp; the Club'), (30, 'Where were you last night?', 'Two pages of the beautiful people')]
     P[3] = ('ed', lambda n: contents_mast(n, ct, short=True, tiles=[('tie', 8, 'Round 1'), ('bib_lux', 20, 'Bars in Brief'), ('limes', 22, 'Cachaça')]))
     P[4] = ('ed', news_v4)
-    P[5] = ('ad', lambda n: page_ad(n, 'AD-05', 'Full page · right hand · facing News', 'ad_fidels'))
+    P[5] = ('ad', lambda n: page_ad(n, 'AD-05', 'Full page · right hand · facing News', 'house1'))
     P[6] = ('ed', art_feature)
-    P[7] = ('ad', lambda n: page_ad(n, 'AD-07', 'Full page · right hand, facing The Art of Cocktail Mastery', 'ad_cooleswan'))
+    P[7] = ('ad', lambda n: page_ad(n, 'AD-07', 'Full page · right hand, facing The Art of Cocktail Mastery', 'house2'))
     P[8] = ('ed', round1_full)
-    P[9] = ('ad', lambda n: page_ad(n, 'AD-09', 'Full page · right hand, facing Round 1', 'ad_zimmer'))
+    P[9] = ('ad', lambda n: page_ad(n, 'AD-09', 'Full page · right hand, facing Round 1', 'house3'))
     P[10] = ('ed', shaken_v2)
     P[11] = ('ad', lambda n: page_ad(n, 'AD-11', 'Full page · right hand, facing Shaken & Stirred', 'ad_ketelthanks'))
     P[12] = ('ed', top10)
-    P[13] = ('ad', lambda n: page_ad(n, 'AD-13', 'Full page · right hand, facing Top 10', 'ad_beach'))
-    P[14] = ('ed', lambda n: review2(n, 'ad_ketel'))
-    P[15] = ('ad', lambda n: page_ad(n, 'AD-15', 'Full page · right hand, facing Review', 'ad_mickeyfinn'))
+    P[13] = ('ad', lambda n: page_ad(n, 'AD-13', 'Full page · right hand, facing Top 10', 'house1'))
+    P[14] = ('ed', lambda n: review2(n, 'house_third'))
+    P[15] = ('ad', lambda n: page_ad(n, 'AD-15', 'Full page · right hand, facing Review', 'house2'))
     P[16] = ('ed', team_focus)
-    P[17] = ('ad', lambda n: page_ad(n, 'AD-17', 'Centre spread · right hand', 'ad_chambord'))
+    P[17] = ('ad', lambda n: page_ad(n, 'AD-17', 'Centre spread · right hand', 'house3'))
     P[18] = ('ed', above_board_review)
-    P[19] = ('ad', lambda n: page_ad(n, 'AD-19', 'Full page · right hand, facing Bar Review', 'ad_haze'))
+    P[19] = ('ad', lambda n: page_ad(n, 'AD-19', 'Full page · right hand, facing Bar Review', 'house0'))
     P[20] = ('ed', lambda n: bars_brief(n, BARS32, None, small=True))
-    P[21] = ('ad', lambda n: page_ad(n, 'AD-21', 'Full page · right hand, facing Bars in Brief', 'ad_frangelico2'))
+    P[21] = ('ad', lambda n: page_ad(n, 'AD-21', 'Full page · right hand, facing Bars in Brief', 'house1'))
     P[22] = ('ed', cachaca_a)
     P[23] = ('ed', cachaca_b)
     P[24] = ('ed', mixology_x)
-    P[25] = ('ad', lambda n: page_ad(n, 'AD-25', 'Full page · right hand, facing Mixology', 'ad_matusalem'))
+    P[25] = ('ad', lambda n: page_ad(n, 'AD-25', 'Full page · right hand, facing Mixology', 'house2'))
     P[26] = ('ed', martini_history)
     P[27] = ('ed', traveller_caretakers)
     P[28] = ('ed', champ_season)
     P[29] = ('ed', champ_tickets)
     P[30] = ('ed', wwyln_a)
     P[31] = ('ed', wwyln_b)
-    P[32] = ('ad', lambda n: page_ad(n, 'AD-32', 'Outside back cover', 'ad_illusion'))
+    P[32] = ('ad', lambda n: page_ad(n, 'AD-32', 'Outside back cover', 'house3'))
     return P
 
 
