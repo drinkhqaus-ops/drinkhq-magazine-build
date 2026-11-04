@@ -12,7 +12,7 @@ run-name: "Publish Issue 01 ${{ inputs.note }}"
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # 26.04 ships Ghostscript 10.06, which fails the press PDF step
     timeout-minutes: 30
     defaults:
       run:
